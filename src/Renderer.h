@@ -42,6 +42,7 @@
 #include <vector>
 
 #include "Player.h"
+#include "Shaders.h"
 
 class Camera;
 class Scene;
@@ -120,6 +121,9 @@ protected:
 	Player m_player;
 
 	OVR::Matrix4f CalculateViewFromPose(const OVR::Posef& pose);
+
+	ShaderManager* m_shaderManager;
+
 
 };
 

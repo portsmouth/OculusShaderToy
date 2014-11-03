@@ -25,7 +25,9 @@ Renderer::Renderer(int W, int H, QGLFormat format, QMainWindow *parent) :
 	HaveHMDConnected(false),
 	StartTrackingCaps(0),
 	m_fullscreened(false),
-	HSWDisplayCurrentlyDisplayed(true)
+	HSWDisplayCurrentlyDisplayed(true),
+
+	m_shaderManager(NULL)
 
 {
 	setMouseTracking(true);
@@ -98,6 +100,7 @@ Renderer::Renderer(int W, int H, QGLFormat format, QMainWindow *parent) :
 
 	format.setDepth(false);
 	setAutoBufferSwap(false);
+
 }
 
 Renderer::~Renderer()
@@ -257,6 +260,10 @@ void Renderer::render()
 		OVR::Matrix4f view = CalculateViewFromPose(EyeRenderPose[eye]);
 		OVR::Recti renderViewport = eyeGLTextures[eye].Texture.Header.RenderViewport;
 		glViewport(renderViewport.x, renderViewport.y, renderViewport.w, renderViewport.h);
+
+		std::cout << "renderViewport.w: " << renderViewport.w << std::endl;
+		std::cout << "renderViewport.h: " << renderViewport.h << std::endl;
+
 		const OVR::Matrix4f viewProj = Projection[eye] * view;
 
 		glMatrixMode(GL_PROJECTION);
@@ -413,6 +420,12 @@ void Renderer::initializeGL()
 	}
 	printf("GL initialization complete.\n");
 
+	//////////////////////////////////
+	/// Setup shader
+	//////////////////////////////////
+
+	m_shaderManager = new ShaderManager();
+
 	//glShadeModel(GL_SMOOTH);
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -539,7 +552,20 @@ void Renderer::initializeGL()
 
 void Renderer::drawScene(const double &dt)
 {
-	drawGrid(Imath::V3f(0), 100.f, 100.f, 256);
+	// Render a viewport-aligned quad using a raytracing shader:
+	GLuint shader = m_shaderManager->getProgram();
+	glUseProgram(shader);
+
+	glBegin (GL_QUADS);
+	glVertex2f(-1.f, -1.f);
+	glVertex2f( 1.f, -1.f);
+	glVertex2f( 1.f,  1.f);
+	glVertex2f(-1.f,  1.f);
+	glEnd ();
+
+	glUseProgram(0);
+
+	//drawGrid(Imath::V3f(0), 100.f, 100.f, 256);
 }
 
 void Renderer::resizeGL(int width, int height)

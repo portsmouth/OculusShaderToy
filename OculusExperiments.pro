@@ -7,15 +7,20 @@
 QMAKE_MAC_SDK = macosx10.9
 QT       += core gui widgets
 
-TARGET = oculusDemo
+TARGET = OculusExperiments
 TEMPLATE = app
 
 {
 	QT += opengl
 
-	SOURCES += main.cpp Renderer.cpp Player.cpp
+	SOURCES += src/main.cpp \
+				src/Renderer.cpp \
+				src/Player.cpp \
+    src/Shaders.cpp
 
-	HEADERS += Renderer.h Player.h
+	HEADERS += src/Renderer.h \
+				src/Player.h \
+    src/Shaders.h
 
 	LIBS += -L/Developer/OculusSDK2/LibOVR/Lib/Mac/Debug/ -lovr
 
@@ -28,4 +33,8 @@ TEMPLATE = app
 # install
 target.path = $$[QT_INSTALL_EXAMPLES]/opengl/oculus
 INSTALLS += target
+
+OTHER_FILES += \
+    shaders/shader.vs \
+    shaders/shader.fs
 
