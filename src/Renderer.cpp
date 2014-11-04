@@ -17,6 +17,8 @@
 #include <QPainter>
 #include <QLinearGradient>
 
+#include <Kernel/OVR_Math.h>
+
 Renderer::Renderer(int W, int H, QGLFormat format, QMainWindow *parent) :
 
 	QGLWidget(format, parent), m_parentWindow(parent), m_W(W), m_H(H),
@@ -90,12 +92,6 @@ Renderer::Renderer(int W, int H, QGLFormat format, QMainWindow *parent) :
 
 	ovrHmd_SetEnabledCaps(Hmd, hmdCaps);
 
-	bodyYaw = 0;
-	bodyPos = OVR::Vector3f(0, 0, 0);
-	//bodyPos.y = ovrHmd_GetFloat(Hmd, OVR_KEY_EYE_HEIGHT, 1.70);
-	bodyPos.y = 1.7;
-
-	//offFB = NULL;
 	tStart = 0.0;
 
 	format.setDepth(false);
@@ -158,6 +154,29 @@ OVR::Matrix4f Renderer::CalculateViewFromPose(const OVR::Posef& pose)
 	return view;
 }
 
+
+void Renderer::calculateCameraBasisFromPose(const OVR::Posef& pose, const ovrEyeRenderDesc& eyeDesc,
+											CameraBasis& cameraBasis)
+{
+	OVR::Posef worldPose = m_player.VirtualWorldTransformfromRealPose(pose);
+
+	OVR::Vector3f forward = worldPose.Rotation.Rotate(ForwardVector);
+	OVR::Vector3f viewPos = worldPose.Translation;
+	cameraBasis.pos = viewPos;
+
+	OVR::Vector3f up      = worldPose.Rotation.Rotate(UpVector);
+	OVR::Vector3f eye = viewPos;
+	OVR::Vector3f at = viewPos + forward;
+
+	cameraBasis.z = (eye - at).Normalized();  // Forward
+	cameraBasis.x = up.Cross(cameraBasis.z).Normalized(); // Right
+	cameraBasis.y = cameraBasis.z.Cross(cameraBasis.x);
+
+	cameraBasis.fov = eyeDesc.Fov;
+	cameraBasis.znear = .1f;
+	cameraBasis.zfar = 1000.0f;
+
+}
 
 
 void Renderer::render()
@@ -254,26 +273,40 @@ void Renderer::render()
 										  EyeRenderDesc[1].HmdToEyeViewOffset };
 	ovrHmd_GetEyePoses(Hmd, 0, hmdToEyeViewOffset, EyeRenderPose, &hmdState);
 
+	//std::cout << "\n-------------------------------" << std::endl;
 	for (int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++)
 	{
 		ovrEyeType eye = Hmd->EyeRenderOrder[eyeIndex];
-		OVR::Matrix4f view = CalculateViewFromPose(EyeRenderPose[eye]);
+		//std::cout << "\neye: " << eye << std::endl;
+
+		//OVR::Matrix4f view = CalculateViewFromPose(EyeRenderPose[eye]);
 		OVR::Recti renderViewport = eyeGLTextures[eye].Texture.Header.RenderViewport;
 		glViewport(renderViewport.x, renderViewport.y, renderViewport.w, renderViewport.h);
 
+		/*
+		std::cout << "renderViewport.x: " << renderViewport.x << std::endl;
+		std::cout << "renderViewport.y: " << renderViewport.y << std::endl;
 		std::cout << "renderViewport.w: " << renderViewport.w << std::endl;
 		std::cout << "renderViewport.h: " << renderViewport.h << std::endl;
+		*/
 
-		const OVR::Matrix4f viewProj = Projection[eye] * view;
+		//const OVR::Matrix4f viewProj = Projection[eye] * view;
 
+		CameraBasis cameraBasis;
+		calculateCameraBasisFromPose(EyeRenderPose[eye], EyeRenderDesc[eye], cameraBasis);
+
+		/*
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
 		glLoadMatrixf(&viewProj.Transposed().M[0][0]);
 
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
+		*/
 
-		drawScene(dt);
+		//eyeIndex==0 ? glColor3f(1.f, 0.f, 0.f) : glColor3f(0.f, 1.f, 0.f);
+
+		drawScene(eye, dt, renderViewport, cameraBasis);
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -287,6 +320,74 @@ void Renderer::render()
 
 	glFlush();
 	glFinish();
+}
+
+
+void Renderer::drawScene(ovrEyeType eye, const double &dt,
+						 OVR::Recti& renderViewport,
+						 CameraBasis& cameraBasis)
+{
+	// Render a viewport-aligned quad using a raytracing shader:
+	GLuint shader = m_shaderManager->getProgram();
+	glUseProgram(shader);
+
+	double curtime = ovr_GetTimeInSeconds();
+	glUniform1f(glGetUniformLocation(shader, "iGlobalTime"), (float)curtime);
+
+	float UpTan    = cameraBasis.fov.UpTan;
+	float DownTan  = cameraBasis.fov.DownTan;
+	float LeftTan  = cameraBasis.fov.LeftTan;
+	float RightTan = cameraBasis.fov.RightTan;
+	glUniform1f(glGetUniformLocation(shader, "UpTan"), (float)UpTan);
+	glUniform1f(glGetUniformLocation(shader, "DownTan"), (float)DownTan);
+	glUniform1f(glGetUniformLocation(shader, "LeftTan"), (float)LeftTan);
+	glUniform1f(glGetUniformLocation(shader, "RightTan"), (float)RightTan);
+
+	OVR::Vector3f X = cameraBasis.x;
+	OVR::Vector3f Y = cameraBasis.y;
+	OVR::Vector3f Z = cameraBasis.z;
+	glUniform3f(glGetUniformLocation(shader, "camBasisX"), X.x, X.y, X.z);
+	glUniform3f(glGetUniformLocation(shader, "camBasisY"), Y.x, Y.y, Y.z);
+	glUniform3f(glGetUniformLocation(shader, "camBasisZ"), Z.x, Z.y, Z.z);
+
+	OVR::Vector3f E = cameraBasis.pos;
+	glUniform3f(glGetUniformLocation(shader, "camPos"), E.x, E.y, E.z);
+
+	float znear = cameraBasis.znear;
+	float zfar = cameraBasis.zfar;
+	glUniform1f(glGetUniformLocation(shader, "znear"), (float)znear);
+	glUniform1f(glGetUniformLocation(shader, "zfar"), (float)zfar);
+
+	glUniform1f(glGetUniformLocation(shader, "viewportW"), (float)renderViewport.w);
+	glUniform1f(glGetUniformLocation(shader, "viewportH"), (float)renderViewport.h);
+	glUniform1f(glGetUniformLocation(shader, "viewportX"), (float)renderViewport.x);
+	glUniform1f(glGetUniformLocation(shader, "viewportY"), (float)renderViewport.y);
+
+	/*
+	std::cout << "camX: " << X.x << ", " << X.y << ", " << X.z << std::endl;
+	std::cout << "camY: " << Y.x << ", " << Y.y << ", " << Y.z << std::endl;
+	std::cout << "camZ: " << Z.x << ", " << Z.y << ", " << Z.z << std::endl;
+	std::cout << "camPos: " << E.x << ", " << E.y << ", " << E.z << std::endl;
+
+	std::cout << "UpTan: " << UpTan << std::endl;
+	std::cout << "DownTan: " << DownTan << std::endl;
+	std::cout << "LeftTan: " << LeftTan << std::endl;
+	std::cout << "RightTan: " << RightTan << std::endl;
+
+	std::cout << "znear: " << znear << std::endl;
+	std::cout << "zfar: " << zfar << std::endl;
+	*/
+
+	glBegin (GL_QUADS);
+	glVertex2f(-1.f, -1.f);
+	glVertex2f( 1.f, -1.f);
+	glVertex2f( 1.f,  1.f);
+	glVertex2f(-1.f,  1.f);
+	glEnd ();
+
+	glUseProgram(0);
+
+	//drawGrid(Imath::V3f(0), 100.f, 100.f, 256);
 }
 
 
@@ -495,8 +596,6 @@ void Renderer::initializeGL()
 	EyeRenderSize[0] = OVR::Sizei::Min(OVR::Sizei(rtSize.w/2, rtSize.h), recommendedTexSize[0]);
 	EyeRenderSize[1] = OVR::Sizei::Min(OVR::Sizei(rtSize.w/2, rtSize.h), recommendedTexSize[1]);
 
-
-
 	// Store texture pointers that will be passed for rendering.
 	// Same texture is used, but with different viewports.
 
@@ -550,23 +649,7 @@ void Renderer::initializeGL()
 }
 
 
-void Renderer::drawScene(const double &dt)
-{
-	// Render a viewport-aligned quad using a raytracing shader:
-	GLuint shader = m_shaderManager->getProgram();
-	glUseProgram(shader);
 
-	glBegin (GL_QUADS);
-	glVertex2f(-1.f, -1.f);
-	glVertex2f( 1.f, -1.f);
-	glVertex2f( 1.f,  1.f);
-	glVertex2f(-1.f,  1.f);
-	glEnd ();
-
-	glUseProgram(0);
-
-	//drawGrid(Imath::V3f(0), 100.f, 100.f, 256);
-}
 
 void Renderer::resizeGL(int width, int height)
 {

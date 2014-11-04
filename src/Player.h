@@ -53,6 +53,8 @@ public:
 	uint8_t             MoveBack;
 	uint8_t             MoveLeft;
 	uint8_t             MoveRight;
+	uint8_t             MoveUp;
+	uint8_t             MoveDown;
 	OVR::Vector3f       GamepadMove, GamepadRotate;
 	bool                bMotionRelativeToBody;
 

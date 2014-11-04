@@ -4,10 +4,11 @@
 
 Player::Player() :
 	UserEyeHeight(1.76f - 0.15f),        // 1.76 meters height (ave US male, Wikipedia), less 15 centimeters (TomF's top-of-head-to-eye distance).
-	BodyPos(7.7f, 1.76f - 0.15f, -1.0f),
+	//BodyPos(1.0f, 1.76f - 0.15f, 1.0f),
+	BodyPos(1.0f, 3.5f, 1.0f),
 	BodyYaw(YawInitial)
 {
-	MoveForward = MoveBack = MoveLeft = MoveRight = 0;
+	MoveForward = MoveBack = MoveLeft = MoveRight = MoveUp = MoveDown = 0;
 	GamepadMove = OVR::Vector3f(0);
 	GamepadRotate = OVR::Vector3f(0);
 }
@@ -41,7 +42,7 @@ void Player::HandleMovement(double dt, bool shiftDown)
 	// This translates BasePos based on the orientation and keys pressed.
 	// Note that Pitch and Roll do not affect movement (they only affect view).
 	OVR::Vector3f controllerMove;
-	if (MoveForward || MoveBack || MoveLeft || MoveRight)
+	if (MoveForward || MoveBack || MoveLeft || MoveRight || MoveUp || MoveDown)
 	{
 		if (MoveForward)
 		{
@@ -59,13 +60,21 @@ void Player::HandleMovement(double dt, bool shiftDown)
 		{
 			controllerMove -= RightVector;
 		}
+		if (MoveUp)
+		{
+			controllerMove += UpVector;
+		}
+		else if (MoveDown)
+		{
+			controllerMove -= UpVector;
+		}
 	}
 	else if (GamepadMove.LengthSq() > 0)
 	{
 		controllerMove = GamepadMove;
 	}
 	controllerMove = GetOrientation(bMotionRelativeToBody).Rotate(controllerMove);
-	controllerMove.y = 0; // Project to the horizontal plane
+	//controllerMove.y = 0; // Project to the horizontal plane
 	if (controllerMove.LengthSq() > 0)
 	{
 		// Normalize vector so we don't move faster diagonally.
@@ -96,8 +105,8 @@ bool Player::HandleMoveKey(OVR::KeyCode key, bool down)
 		case OVR::Key_S:     MoveBack    = down ? (MoveBack    | 1) : (MoveBack    & ~1); return true;
 		case OVR::Key_A:     MoveLeft    = down ? (MoveLeft    | 1) : (MoveLeft    & ~1); return true;
 		case OVR::Key_D:     MoveRight   = down ? (MoveRight   | 1) : (MoveRight   & ~1); return true;
-		case OVR::Key_Up:    MoveForward = down ? (MoveForward | 2) : (MoveForward & ~2); return true;
-		case OVR::Key_Down:  MoveBack    = down ? (MoveBack    | 2) : (MoveBack    & ~2); return true;
+		case OVR::Key_Up:    MoveUp      = down ? (MoveUp      | 2) : (MoveUp      & ~2); return true;
+		case OVR::Key_Down:  MoveDown    = down ? (MoveDown    | 2) : (MoveDown    & ~2); return true;
 		case OVR::Key_Left:  MoveLeft    = down ? (MoveLeft    | 2) : (MoveLeft    & ~2); return true;
 		case OVR::Key_Right: MoveRight   = down ? (MoveRight   | 2) : (MoveRight   & ~2); return true;
 		default: return false;

@@ -5,6 +5,7 @@
 #include <QtOpenGL/QGLWidget>
 #include <QtGui/QMouseEvent>
 #include <QGLFramebufferObject>
+#include <QTimer>
 
 ///////////////////////////////////////////////////
 // Platform-specific defines go here
@@ -72,21 +73,17 @@ protected:
 	void keyReleaseEvent(QKeyEvent *event);
 	void wheelEvent(QWheelEvent *);
 
-	int m_W;
-	int m_H;
+
 	bool m_fullscreened;
 
 	QPoint m_lastMousePos;
 	bool m_repaintFlag;
 	Camera* m_camera;
-
 	QMainWindow* m_parentWindow;
 
-	/////////////////////
-	float bodyYaw;
-	OVR::Vector3f bodyPos;
+	int m_W;
+	int m_H;
 
-	void drawScene(const double &dt);
 
 	// ***** Oculus HMD Variables
 	ovrHmd              Hmd;
@@ -107,8 +104,6 @@ protected:
 
 	double tStart;
 
-
-
 	// Current status flags
 	bool                HaveVisionTracking;
 	bool                HavePositionTracker;
@@ -120,10 +115,25 @@ protected:
 	// Class holding the player state
 	Player m_player;
 
-	OVR::Matrix4f CalculateViewFromPose(const OVR::Posef& pose);
-
 	ShaderManager* m_shaderManager;
 
+	OVR::Matrix4f CalculateViewFromPose(const OVR::Posef& pose);
+
+	struct CameraBasis
+	{
+		OVR::Vector3f pos;
+		OVR::Vector3f x, y, z; // direction basis (-z=view, LH)
+		ovrFovPort fov;
+		float znear, zfar;
+	};
+
+	void calculateCameraBasisFromPose(const OVR::Posef& pose,
+									  const ovrEyeRenderDesc& eyeDesc,
+									  CameraBasis& cameraBasis);
+
+	void drawScene(ovrEyeType eye, const double &dt,
+					 OVR::Recti& renderViewport,
+					 CameraBasis& cameraBasis);
 
 };
 
