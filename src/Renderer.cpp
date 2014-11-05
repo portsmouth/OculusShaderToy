@@ -274,6 +274,7 @@ void Renderer::render()
 	ovrHmd_GetEyePoses(Hmd, 0, hmdToEyeViewOffset, EyeRenderPose, &hmdState);
 
 	//std::cout << "\n-------------------------------" << std::endl;
+
 	for (int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++)
 	{
 		ovrEyeType eye = Hmd->EyeRenderOrder[eyeIndex];
@@ -306,7 +307,7 @@ void Renderer::render()
 
 		//eyeIndex==0 ? glColor3f(1.f, 0.f, 0.f) : glColor3f(0.f, 1.f, 0.f);
 
-		drawScene(eye, dt, renderViewport, cameraBasis);
+		drawScene(eye, dt, curtime, renderViewport, cameraBasis);
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -323,7 +324,7 @@ void Renderer::render()
 }
 
 
-void Renderer::drawScene(ovrEyeType eye, const double &dt,
+void Renderer::drawScene(ovrEyeType eye, const double &dt, double globalTime,
 						 OVR::Recti& renderViewport,
 						 CameraBasis& cameraBasis)
 {
@@ -331,8 +332,7 @@ void Renderer::drawScene(ovrEyeType eye, const double &dt,
 	GLuint shader = m_shaderManager->getProgram();
 	glUseProgram(shader);
 
-	double curtime = ovr_GetTimeInSeconds();
-	glUniform1f(glGetUniformLocation(shader, "iGlobalTime"), (float)curtime);
+	glUniform1f(glGetUniformLocation(shader, "iGlobalTime"), (float)globalTime);
 
 	float UpTan    = cameraBasis.fov.UpTan;
 	float DownTan  = cameraBasis.fov.DownTan;
@@ -362,6 +362,8 @@ void Renderer::drawScene(ovrEyeType eye, const double &dt,
 	glUniform1f(glGetUniformLocation(shader, "viewportH"), (float)renderViewport.h);
 	glUniform1f(glGetUniformLocation(shader, "viewportX"), (float)renderViewport.x);
 	glUniform1f(glGetUniformLocation(shader, "viewportY"), (float)renderViewport.y);
+
+	glUniform2f(glGetUniformLocation(shader, "iResolution"), renderViewport.w, renderViewport.h);
 
 	/*
 	std::cout << "camX: " << X.x << ", " << X.y << ", " << X.z << std::endl;

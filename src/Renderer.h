@@ -131,7 +131,7 @@ protected:
 									  const ovrEyeRenderDesc& eyeDesc,
 									  CameraBasis& cameraBasis);
 
-	void drawScene(ovrEyeType eye, const double &dt,
+	void drawScene(ovrEyeType eye, const double &dt, double globalTime,
 					 OVR::Recti& renderViewport,
 					 CameraBasis& cameraBasis);
 
