@@ -20,21 +20,21 @@ TEMPLATE = app
 
 	HEADERS += src/Renderer.h \
 				src/Player.h \
-    src/Shaders.h
+				src/Shaders.h
 
-	LIBS += -L/Developer/OculusSDK2/LibOVR/Lib/Mac/Debug/ -lovr
+	LIBS += -L/Developer/OculusSDK2/LibOVR/Lib/Mac/Release/ -lovr
 
 	INCLUDEPATH +=  /Developer/OculusSDK2/LibOVR/Include/ \
 					/Developer/OculusSDK2/LibOVR/Src \
 					/opt/local/include/OpenEXR/
 
-	LIBS += -framework cocoa -framework carbon -framework opengl -framework IOKit
+	LIBS += -framework cocoa -framework carbon -framework opengl
 
 # install
 target.path = $$[QT_INSTALL_EXAMPLES]/opengl/oculus
 INSTALLS += target
 
 OTHER_FILES += \
-    shaders/shader.vs \
-    shaders/shader.fs
+		shaders/shader.vs \
+		shaders/shader.fs
 

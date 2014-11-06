@@ -21,25 +21,25 @@ uniform float iGlobalTime;
 uniform vec2 iResolution;
 
 
-#define MaxSteps 128
-#define MinimumDistance 0.00001
-#define normalDistance     0.0002
+#define MaxSteps 30
+#define MinimumDistance 0.001
+#define normalDistance     MinimumDistance
 
 #define Iterations 7
 #define PI 3.141592
-#define Scale  3.0
-#define FieldOfView 3.0
-#define Jitter 0.02
-#define FudgeFactor 0.9
-#define NonLinearPerspective 1.0
+#define Scale 3.0
+#define FieldOfView 1.0
+#define Jitter 0.05
+#define FudgeFactor 0.7
+#define NonLinearPerspective 2.0
 #define DebugNonlinearPerspective false
 
 #define Ambient 0.32184
-#define Diffuse 0.8
+#define Diffuse 0.5
 #define LightDir vec3(1.0)
-#define LightColor vec3(1.0,0.7,0.358824)
+#define LightColor vec3(1.0,1.0,0.858824)
 #define LightDir2 vec3(1.0,-1.0,1.0)
-#define LightColor2 vec3(0.5,0.633333,0.2)
+#define LightColor2 vec3(0.0,0.333333,1.0)
 #define Offset vec3(0.92858,0.92858,0.32858)
 
 vec2 rotate(vec2 v, float a) {
@@ -66,21 +66,12 @@ vec3 getLight(in vec3 color, in vec3 normal, in vec3 dir) {
 // http://www.fractalforums.com/3d-fractal-generation/kaleidoscopic-%28escape-time-ifs%29/
 float DE(in vec3 z)
 {
-	// enable this to debug the non-linear perspective
-	if (DebugNonlinearPerspective) {
-		z = fract(z);
-		float d=length(z.xy-vec2(0.5));
-		d = min(d, length(z.xz-vec2(0.5)));
-		d = min(d, length(z.yz-vec2(0.5)));
-		return d-0.01;
-	}
 	// Folding 'tiling' of 3D space;
 	z  = abs(1.0-mod(z,2.0));
-	float time = 0.02*iGlobalTime;
 
-	float d = 10000000.0;
+	float d = 1000.0;
 	for (int n = 0; n < Iterations; n++) {
-		z.xy = rotate(z.xy,4.0+2.0*cos( time/8.0));
+		z.xy = rotate(z.xy,4.0+2.0*cos( iGlobalTime/8.0));
 		z = abs(z);
 		if (z.x<z.y){ z.xy = z.yx;}
 		if (z.x< z.z){ z.xz = z.zx;}
@@ -126,8 +117,7 @@ vec4 rayMarch(in vec3 from, in vec3 dir) {
 	vec3 pos;
 	for (int i=0; i < MaxSteps; i++) {
 		// Non-linear perspective applied here.
-		//dir.zy = rotate(dir2.zy,totalDistance)*cos( iGlobalTime/4.0)*NonLinearPerspective;
-
+		dir.zy = rotate(dir2.zy,totalDistance*cos( iGlobalTime/4.0)*NonLinearPerspective);
 		pos = from + totalDistance * dir;
 		distance = DE(pos)*FudgeFactor;
 		totalDistance += distance;
@@ -152,6 +142,9 @@ vec4 rayMarch(in vec3 from, in vec3 dir) {
 
 void main(void)
 {
+	// Camera position (eye), and camera target
+	vec3 camPosProcedural = 0.005*iGlobalTime*vec3(1.0,0.0,0.0);
+
 	vec2 ndc = vec2((gl_FragCoord.x-viewportX)/viewportW,
 					(gl_FragCoord.y-viewportY)/viewportH);
 
@@ -166,9 +159,8 @@ void main(void)
 
 	vec3 rayDir = normalize( -znear*camBasisZ + P.x*camBasisX + P.y*camBasisY );
 
-	gl_FragColor = rayMarch(camPos, rayDir);
+	gl_FragColor = rayMarch(camPosProcedural, rayDir);
 }
-
 
 
 

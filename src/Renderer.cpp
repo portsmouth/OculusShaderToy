@@ -17,7 +17,14 @@
 #include <QPainter>
 #include <QLinearGradient>
 
+// Include the OculusVR SDK
+#include "OVR.h"
+#include "OVR_Kernel.h"
+#include "OVR_CAPI.h"
+#include "OVR_CAPI_GL.h"
 #include <Kernel/OVR_Math.h>
+#include <Kernel/OVR_Alg.h>
+#include "Kernel/OVR_KeyCodes.h"
 
 Renderer::Renderer(int W, int H, QGLFormat format, QMainWindow *parent) :
 
@@ -69,7 +76,7 @@ Renderer::Renderer(int W, int H, QGLFormat format, QMainWindow *parent) :
 	m_lastMousePos = QPoint(width()/2,height()/2);
 
 	// Hmd caps.
-	bool VsyncEnabled = false;
+	bool VsyncEnabled = true;
 	unsigned hmdCaps = (VsyncEnabled ? 0 : ovrHmdCap_NoVSync);
 
 	bool IsLowPersistence = true;
@@ -233,7 +240,6 @@ void Renderer::render()
 		std::cout << "HMD Connected" << std::endl;
 	if (!HaveHMDConnected && hadHMDConnected)
 		std::cout << "HMD Disconnected" << std::endl;
-
 
 	// Update pose based on frame!
 	m_player.HeadPose = ts.HeadPose.ThePose;
@@ -432,11 +438,12 @@ void Renderer::mouseMoveEvent(QMouseEvent *event)
 
 	//m_lastMousePos = event->pos();
 
+	/*
 	QPoint glob = mapToGlobal(QPoint(width()/2,height()/2));
 		QCursor::setPos(glob);
 		m_lastMousePos = QPoint(width()/2,height()/2);
 		QGLWidget::mouseMoveEvent(event);
-
+	*/
 	paintGL();
 }
 
