@@ -1,10 +1,7 @@
 
 #include "Shaders.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <iostream>
+#include <QDirIterator>
 
 /*
 * Returns a string containing the text in
@@ -119,12 +116,39 @@ void ShaderManager::shaderAttachFromFile(GLuint program, GLenum type, const char
 	}
 }
 
-ShaderManager::ShaderManager()
+
+void findFragmentShaders(std::string baseDir, std::vector<std::string>& pathsOut)
+{
+	QStringList nameFilter("*.fs");
+	QDir dir(baseDir.c_str());
+	QStringList files = dir.entryList(nameFilter);
+	for(int i=0;i<files.size();i++)
+	{
+		std::string path = dir.absoluteFilePath(files[i]).toUtf8().constData();
+		pathsOut.push_back(path);
+	}
+}
+
+
+
+void ShaderManager::loadNextShader()
+{
+	m_currentShader++;
+	if (m_currentShader>=m_fragmentShaders.size())
+		m_currentShader=0;
+
+	hotLoad(m_currentShader);
+}
+
+
+void ShaderManager::hotLoad(unsigned int n)
 {
 	/* create program object and attach shaders */
 	g_program = glCreateProgram();
 	shaderAttachFromFile(g_program, GL_VERTEX_SHADER, "/Users/jamports/projects/OculusExperiments/shaders/shader.vs");
-	shaderAttachFromFile(g_program, GL_FRAGMENT_SHADER, "/Users/jamports/projects/OculusExperiments/shaders/shader.fs");
+
+	std::string fragmentShaderPath = m_fragmentShaders[n];
+	shaderAttachFromFile(g_program, GL_FRAGMENT_SHADER, fragmentShaderPath.c_str());
 
 	/* link the program and make sure that there were no errors */
 	GLint result;
@@ -150,5 +174,18 @@ ShaderManager::ShaderManager()
 	}
 
 	std::cout << "Successfully linked shader program." << std::endl;
+}
 
+
+
+ShaderManager::ShaderManager() : m_currentShader(0)
+{
+	std::string shaderDir = "/Users/jamports/projects/OculusExperiments/shaders/";
+	findFragmentShaders(shaderDir, m_fragmentShaders);
+	for (int n=0; n<m_fragmentShaders.size(); ++n)
+	{
+		std::cout << "Found shader: " << m_fragmentShaders[n] << std::endl;
+	}
+
+	hotLoad(m_currentShader);
 }

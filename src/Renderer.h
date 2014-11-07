@@ -2,7 +2,9 @@
 #pragma once
 
 #include <QMainWindow>
+
 #include <QtOpenGL/QGLWidget>
+
 #include <QtGui/QMouseEvent>
 #include <QGLFramebufferObject>
 #include <QTimer>
@@ -67,17 +69,15 @@ protected:
 	void resizeGL(int w, int h);
 	void paintGL();
 
+	friend class GraphicsView;
 	void mousePressEvent(QMouseEvent *event);
 	void mouseMoveEvent(QMouseEvent *event);
 	void keyPressEvent(QKeyEvent *event);
 	void keyReleaseEvent(QKeyEvent *event);
 	void wheelEvent(QWheelEvent *);
 
-
 	bool m_fullscreened;
-
 	QPoint m_lastMousePos;
-	bool m_repaintFlag;
 	Camera* m_camera;
 	QMainWindow* m_parentWindow;
 
@@ -131,9 +131,8 @@ protected:
 									  const ovrEyeRenderDesc& eyeDesc,
 									  CameraBasis& cameraBasis);
 
-	void drawScene(ovrEyeType eye, const double &dt, double globalTime,
-					 OVR::Recti& renderViewport,
-					 CameraBasis& cameraBasis);
+	void drawScene(int eyeIndex, double globalTime);
+	void raytrace(int eyeIndex, double globalTime);
 
 };
 

@@ -18,9 +18,13 @@ TEMPLATE = app
 				src/Player.cpp \
     src/Shaders.cpp
 
+
+	OBJECTIVE_SOURCES += src/Mac.mm
+
 	HEADERS += src/Renderer.h \
 				src/Player.h \
-				src/Shaders.h
+				src/Shaders.h \
+				src/Mac.h
 
 	LIBS += -L/Developer/OculusSDK2/LibOVR/Lib/Mac/Release/ -lovr
 
@@ -36,5 +40,11 @@ INSTALLS += target
 
 OTHER_FILES += \
 		shaders/shader.vs \
-		shaders/shader.fs
+		shaders/shader.fs \
+    shaders/menger.fs \
+    shaders/mengerDistort.fs \
+    shaders/repetition.fs \
+    shaders/seascape.fs \
+    shaders/waterpipe.fs
+
 

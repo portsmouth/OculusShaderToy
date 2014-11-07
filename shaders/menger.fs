@@ -21,15 +21,15 @@ uniform float iGlobalTime;
 uniform vec2 iResolution;
 
 
-#define MaxSteps 128
-#define MinimumDistance 0.00001
+#define MaxSteps 32
+#define MinimumDistance 0.00005
 #define normalDistance     0.0002
 
 #define Iterations 7
 #define PI 3.141592
 #define Scale  3.0
 #define FieldOfView 3.0
-#define Jitter 0.02
+#define Jitter 0.005
 #define FudgeFactor 0.9
 #define NonLinearPerspective 1.0
 #define DebugNonlinearPerspective false
@@ -78,7 +78,7 @@ float DE(in vec3 z)
 	z  = abs(1.0-mod(z,2.0));
 	float time = 0.02*iGlobalTime;
 
-	float d = 10000000.0;
+	float d = 1.0;
 	for (int n = 0; n < Iterations; n++) {
 		z.xy = rotate(z.xy,4.0+2.0*cos( time/8.0));
 		z = abs(z);
@@ -166,7 +166,9 @@ void main(void)
 
 	vec3 rayDir = normalize( -znear*camBasisZ + P.x*camBasisX + P.y*camBasisY );
 
-	gl_FragColor = rayMarch(camPos, rayDir);
+	vec3 camPosProcedural = 0.05*iGlobalTime*vec3(0.0,0.0,-1.0);
+
+	gl_FragColor = rayMarch(camPosProcedural, rayDir);
 }
 
 

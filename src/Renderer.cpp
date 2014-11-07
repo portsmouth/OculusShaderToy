@@ -26,6 +26,8 @@
 #include <Kernel/OVR_Alg.h>
 #include "Kernel/OVR_KeyCodes.h"
 
+#include "Mac.h"
+
 Renderer::Renderer(int W, int H, QGLFormat format, QMainWindow *parent) :
 
 	QGLWidget(format, parent), m_parentWindow(parent), m_W(W), m_H(H),
@@ -41,10 +43,9 @@ Renderer::Renderer(int W, int H, QGLFormat format, QMainWindow *parent) :
 {
 	setMouseTracking(true);
 	grabMouse();
-	setFocusPolicy(Qt::StrongFocus);
+	//setFocusPolicy(Qt::StrongFocus);
 
 	QApplication::setOverrideCursor(Qt::BlankCursor);
-
 
 	//////////////////////////////////////////////////////
 	/// Oculus init
@@ -73,6 +74,8 @@ Renderer::Renderer(int W, int H, QGLFormat format, QMainWindow *parent) :
 	m_H = Hmd->Resolution.h;
 
 	resize(m_W, m_H);
+	//this->showFullScreen();
+
 	m_lastMousePos = QPoint(width()/2,height()/2);
 
 	// Hmd caps.
@@ -93,7 +96,7 @@ Renderer::Renderer(int W, int H, QGLFormat format, QMainWindow *parent) :
 	//if (DisplaySleep)
 	//	hmdCaps |= ovrHmdCap_DisplayOff;
 
-	bool MirrorToWindow = true;
+	bool MirrorToWindow = false;
 	if (!MirrorToWindow)
 		hmdCaps |= ovrHmdCap_NoMirrorToWindow;
 
@@ -104,11 +107,13 @@ Renderer::Renderer(int W, int H, QGLFormat format, QMainWindow *parent) :
 	format.setDepth(false);
 	setAutoBufferSwap(false);
 
+	Mac::fullscreen(this);
+
+	tStart = ovr_GetTimeInSeconds();
 }
 
 Renderer::~Renderer()
 {
-	makeCurrent();
 	//delete offFB;
 
 	if (Hmd) ovrHmd_Destroy(Hmd);
@@ -138,9 +143,7 @@ void drawGrid(Imath::V3f origin, float X, float Y, int numDivisions)
 
 void Renderer::paintGL()
 {
-	render();
-	makeCurrent();
-	swapBuffers();
+	//render();
 	update(); // Force repaint as soon as possible.
 }
 
@@ -191,8 +194,6 @@ void Renderer::render()
 	static int frameNum=0;
 	//std::cout << "Renderer::render, frame " << frameNum++ << std::endl;
 
-	this->makeCurrent();
-
 	ovrHSWDisplayState hswDisplayState;
 	ovrHmd_GetHSWDisplayState(Hmd, &hswDisplayState);
 	if (hswDisplayState.Displayed)
@@ -205,7 +206,7 @@ void Renderer::render()
 	float centerPupilDepthMeters  = ovrHmd_GetFloat(Hmd, "CenterPupilDepth", 0.0f);
 
 	static double LastUpdate;
-	double curtime = ovr_GetTimeInSeconds();
+	double curtime = ovr_GetTimeInSeconds() - tStart;
 
 	// If running slower than 10fps, clamp. Helps when debugging, because then dt can be minutes!
 	float  dt = OVR::Alg::Min<float>(float(curtime - LastUpdate), 0.1f);
@@ -279,41 +280,10 @@ void Renderer::render()
 										  EyeRenderDesc[1].HmdToEyeViewOffset };
 	ovrHmd_GetEyePoses(Hmd, 0, hmdToEyeViewOffset, EyeRenderPose, &hmdState);
 
-	//std::cout << "\n-------------------------------" << std::endl;
-
 	for (int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++)
 	{
-		ovrEyeType eye = Hmd->EyeRenderOrder[eyeIndex];
-		//std::cout << "\neye: " << eye << std::endl;
-
-		//OVR::Matrix4f view = CalculateViewFromPose(EyeRenderPose[eye]);
-		OVR::Recti renderViewport = eyeGLTextures[eye].Texture.Header.RenderViewport;
-		glViewport(renderViewport.x, renderViewport.y, renderViewport.w, renderViewport.h);
-
-		/*
-		std::cout << "renderViewport.x: " << renderViewport.x << std::endl;
-		std::cout << "renderViewport.y: " << renderViewport.y << std::endl;
-		std::cout << "renderViewport.w: " << renderViewport.w << std::endl;
-		std::cout << "renderViewport.h: " << renderViewport.h << std::endl;
-		*/
-
-		//const OVR::Matrix4f viewProj = Projection[eye] * view;
-
-		CameraBasis cameraBasis;
-		calculateCameraBasisFromPose(EyeRenderPose[eye], EyeRenderDesc[eye], cameraBasis);
-
-		/*
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glLoadMatrixf(&viewProj.Transposed().M[0][0]);
-
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-		*/
-
-		//eyeIndex==0 ? glColor3f(1.f, 0.f, 0.f) : glColor3f(0.f, 1.f, 0.f);
-
-		drawScene(eye, dt, curtime, renderViewport, cameraBasis);
+		raytrace(eyeIndex, curtime);
+		//drawScene(eyeIndex, curtime);
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -323,18 +293,38 @@ void Renderer::render()
 	EyeTexture[1] = eyeGLTextures[1].Texture;
 	ovrHmd_EndFrame(Hmd, EyeRenderPose, EyeTexture);
 
-	m_repaintFlag = false;
-
 	glFlush();
 	glFinish();
 }
 
 
-void Renderer::drawScene(ovrEyeType eye, const double &dt, double globalTime,
-						 OVR::Recti& renderViewport,
-						 CameraBasis& cameraBasis)
+void Renderer::drawScene(int eyeIndex, double globalTime)
+{
+	ovrEyeType eye = Hmd->EyeRenderOrder[eyeIndex];
+
+	OVR::Matrix4f view = CalculateViewFromPose(EyeRenderPose[eye]);
+	const OVR::Matrix4f viewProj = Projection[eye] * view;
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glLoadMatrixf(&viewProj.Transposed().M[0][0]);
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	drawGrid(Imath::V3f(0), 100.f, 100.f, 256);
+}
+
+void Renderer::raytrace(int eyeIndex, double globalTime)
 {
 	// Render a viewport-aligned quad using a raytracing shader:
+	ovrEyeType eye = Hmd->EyeRenderOrder[eyeIndex];
+
+	OVR::Recti renderViewport = eyeGLTextures[eye].Texture.Header.RenderViewport;
+	glViewport(renderViewport.x, renderViewport.y, renderViewport.w, renderViewport.h);
+
+	CameraBasis cameraBasis;
+	calculateCameraBasisFromPose(EyeRenderPose[eye], EyeRenderDesc[eye], cameraBasis);
+
 	GLuint shader = m_shaderManager->getProgram();
 	glUseProgram(shader);
 
@@ -368,23 +358,12 @@ void Renderer::drawScene(ovrEyeType eye, const double &dt, double globalTime,
 	glUniform1f(glGetUniformLocation(shader, "viewportH"), (float)renderViewport.h);
 	glUniform1f(glGetUniformLocation(shader, "viewportX"), (float)renderViewport.x);
 	glUniform1f(glGetUniformLocation(shader, "viewportY"), (float)renderViewport.y);
-
 	glUniform2f(glGetUniformLocation(shader, "iResolution"), renderViewport.w, renderViewport.h);
 
-	/*
-	std::cout << "camX: " << X.x << ", " << X.y << ", " << X.z << std::endl;
-	std::cout << "camY: " << Y.x << ", " << Y.y << ", " << Y.z << std::endl;
-	std::cout << "camZ: " << Z.x << ", " << Z.y << ", " << Z.z << std::endl;
-	std::cout << "camPos: " << E.x << ", " << E.y << ", " << E.z << std::endl;
-
-	std::cout << "UpTan: " << UpTan << std::endl;
-	std::cout << "DownTan: " << DownTan << std::endl;
-	std::cout << "LeftTan: " << LeftTan << std::endl;
-	std::cout << "RightTan: " << RightTan << std::endl;
-
-	std::cout << "znear: " << znear << std::endl;
-	std::cout << "zfar: " << zfar << std::endl;
-	*/
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
 
 	glBegin (GL_QUADS);
 	glVertex2f(-1.f, -1.f);
@@ -394,8 +373,6 @@ void Renderer::drawScene(ovrEyeType eye, const double &dt, double globalTime,
 	glEnd ();
 
 	glUseProgram(0);
-
-	//drawGrid(Imath::V3f(0), 100.f, 100.f, 256);
 }
 
 
@@ -414,20 +391,18 @@ void Renderer::wheelEvent(QWheelEvent *event)
 	/*
 	// mouse wheel = zoom in and out
 	m_camera->goForward(m_camera->m_stepLength * event->delta());
-	m_repaintFlag = true; // Indicates the progressive update should be started fresh
-	paintGL();
 	*/
 }
 
 void Renderer::mouseMoveEvent(QMouseEvent *event)
 {
+	std::cout << "Renderer::mouseMoveEvent" << std::endl;
 	int dx = event->x() - m_lastMousePos.x();
 	int dy = event->y() - m_lastMousePos.y();
 
 	// Alt+left mouse button = Rotate
 	// Alt+middle mouse button = Pan
 	//Qt::KeyboardModifiers key_modifiers = qApp->keyboardModifiers();
-
 	//if (key_modifiers.testFlag(Qt::AltModifier))
 	{
 		//if (event->buttons().testFlag(Qt::LeftButton))
@@ -436,14 +411,12 @@ void Renderer::mouseMoveEvent(QMouseEvent *event)
 		}
 	}
 
-	//m_lastMousePos = event->pos();
+	m_lastMousePos = event->pos();
 
-	/*
 	QPoint glob = mapToGlobal(QPoint(width()/2,height()/2));
 		QCursor::setPos(glob);
 		m_lastMousePos = QPoint(width()/2,height()/2);
 		QGLWidget::mouseMoveEvent(event);
-	*/
 	paintGL();
 }
 
@@ -457,15 +430,19 @@ void Renderer::keyPressEvent(QKeyEvent* event)
 			close();
 			break;
 
+		case Qt::Key_F1:
+			m_shaderManager->loadNextShader();
+			break;
+
 		case Qt::Key_F9:
 			if (!m_fullscreened)
 			{
-				m_parentWindow->showFullScreen();
+				//m_parentWindow->showFullScreen();
 				QGLWidget::showFullScreen();
 			}
 			else
 			{
-				m_parentWindow->showNormal();
+				//m_parentWindow->showNormal();
 				QGLWidget::showNormal();
 			}
 			m_fullscreened = !m_fullscreened;
@@ -530,21 +507,10 @@ void Renderer::initializeGL()
 	}
 	printf("GL initialization complete.\n");
 
-	//////////////////////////////////
-	/// Setup shader
-	//////////////////////////////////
-
 	m_shaderManager = new ShaderManager();
 
-	//glShadeModel(GL_SMOOTH);
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-	///
+	// Configure Oculus rendering
 	{
-		//glViewport(0, 0, m_W, m_H);
-		//glMatrixMode(GL_MODELVIEW);
-		//glLoadIdentity();
-
 		ovrRenderAPIConfig config;
 		config.Header.API = ovrRenderAPI_OpenGL;
 		config.Header.RTSize = OVR::Sizei(Hmd->Resolution.w, Hmd->Resolution.h);
@@ -583,7 +549,6 @@ void Renderer::initializeGL()
 		Projection[0] = ovrMatrix4f_Projection(EyeRenderDesc[0].Fov, .1f, 1000.0f, true);
 		Projection[1] = ovrMatrix4f_Projection(EyeRenderDesc[1].Fov, .1f, 1000.0f, true);
 	}
-
 
 	// Initialize eye rendering information for ovrHmd_Configure.
 	// The viewport sizes are re-computed in case RenderTargetSize changed due to HW limitations.
@@ -656,7 +621,6 @@ void Renderer::initializeGL()
 
 	std::cout << "Renderer::initializeGL done" << std::endl;
 }
-
 
 
 

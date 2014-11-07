@@ -21,17 +21,17 @@ uniform float iGlobalTime;
 uniform vec2 iResolution;
 
 
-#define MaxSteps 50
-#define MinimumDistance 0.00005
+#define MaxSteps 30
+#define MinimumDistance 0.001
 #define normalDistance     MinimumDistance
 
-#define Iterations 8
+#define Iterations 7
 #define PI 3.141592
 #define Scale 3.0
 #define FieldOfView 1.0
 #define Jitter 0.05
 #define FudgeFactor 0.7
-#define NonLinearPerspective 0.5
+#define NonLinearPerspective 2.0
 #define DebugNonlinearPerspective false
 
 #define Ambient 0.32184
@@ -39,7 +39,7 @@ uniform vec2 iResolution;
 #define LightDir vec3(1.0)
 #define LightColor vec3(1.0,1.0,0.858824)
 #define LightDir2 vec3(1.0,-1.0,1.0)
-#define LightColor2 vec3(0.2,0.333333,1.0)
+#define LightColor2 vec3(0.0,0.333333,1.0)
 #define Offset vec3(0.92858,0.92858,0.32858)
 
 vec2 rotate(vec2 v, float a) {
@@ -69,9 +69,9 @@ float DE(in vec3 z)
 	// Folding 'tiling' of 3D space;
 	z  = abs(1.0-mod(z,2.0));
 
-	float d = 1e3;
+	float d = 1000.0;
 	for (int n = 0; n < Iterations; n++) {
-		z.xy = rotate(z.xy,4.0+2.0*cos( iGlobalTime/50.0));
+		z.xy = rotate(z.xy,4.0+2.0*cos( iGlobalTime/8.0));
 		z = abs(z);
 		if (z.x<z.y){ z.xy = z.yx;}
 		if (z.x< z.z){ z.xz = z.zx;}
@@ -110,14 +110,14 @@ float rand(vec2 co){
 
 vec4 rayMarch(in vec3 from, in vec3 dir) {
 	// Add some noise to prevent banding
-	float totalDistance = 0.0;//Jitter*rand(gl_FragCoord.xy+vec2(iGlobalTime));
+	float totalDistance = Jitter*rand(gl_FragCoord.xy+vec2(iGlobalTime));
 	vec3 dir2 = dir;
 	float distance;
 	int steps = 0;
 	vec3 pos;
 	for (int i=0; i < MaxSteps; i++) {
 		// Non-linear perspective applied here.
-		//dir.zy = rotate(dir2.zy,totalDistance*cos( iGlobalTime/40.0)*NonLinearPerspective);
+		dir.zy = rotate(dir2.zy,totalDistance*cos( iGlobalTime/4.0)*NonLinearPerspective);
 		pos = from + totalDistance * dir;
 		distance = DE(pos)*FudgeFactor;
 		totalDistance += distance;
@@ -143,6 +143,8 @@ vec4 rayMarch(in vec3 from, in vec3 dir) {
 void main(void)
 {
 	// Camera position (eye), and camera target
+	vec3 camPosProcedural = 0.005*iGlobalTime*vec3(1.0,0.0,0.0);
+
 	vec2 ndc = vec2((gl_FragCoord.x-viewportX)/viewportW,
 					(gl_FragCoord.y-viewportY)/viewportH);
 
@@ -157,7 +159,32 @@ void main(void)
 
 	vec3 rayDir = normalize( -znear*camBasisZ + P.x*camBasisX + P.y*camBasisY );
 
-	gl_FragColor = rayMarch(camPos + vec3(100.0, 2000.0, 300.0), rayDir);
+	gl_FragColor = rayMarch(camPosProcedural, rayDir);
 }
 
 
+
+/*
+void main()
+{
+	vec2 ndc = vec2((gl_FragCoord.x-viewportX)/viewportW,
+					(gl_FragCoord.y-viewportY)/viewportH);
+
+	float Hup    = znear * UpTan;
+	float Hdown  = znear * DownTan;
+	float Wleft  = znear * LeftTan;
+	float Wright = znear * RightTan;
+
+	vec2 ll = vec2(-Wleft, -Hdown);
+	vec2 ur = vec2(Wright, Hup);
+	vec2 P = ll + ndc*(ur-ll);
+
+	vec3 ray_direction = normalize( -znear*camBasisZ + P.x*camBasisX + P.y*camBasisY );
+	vec3 ray_origin = camPos;
+
+	vec3 col = render( ray_origin, ray_direction );
+
+	vec4 sample = vec4(col, 1.0);
+	gl_FragColor = sample;
+}
+*/

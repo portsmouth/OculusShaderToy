@@ -21,6 +21,12 @@
 #endif
 ///////////////////////////////////////////////////
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <iostream>
+#include <vector>
+
 class ShaderManager
 {
 public:
@@ -29,13 +35,18 @@ public:
 
 	GLuint getProgram() { return g_program; }
 
+	void loadNextShader();
+
 private:
+
+	void hotLoad(unsigned int n);
 
 	GLuint g_program;
 
 	static GLuint shaderCompileFromFile(GLenum type, const char *filePath);
 	static void shaderAttachFromFile(GLuint program, GLenum type, const char *filePath);
 
-
+	std::vector<std::string> m_fragmentShaders;
+	unsigned int m_currentShader;
 };
 
