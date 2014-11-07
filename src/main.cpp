@@ -36,7 +36,7 @@ public:
 	GraphicsView(GraphicsScene* graphicsScene) : QGraphicsView(graphicsScene), m_graphicsScene(graphicsScene) {}
 
 	virtual void mousePressEvent(QMouseEvent *event) { m_graphicsScene->getRenderer()->mousePressEvent(event); }
-	virtual void mouseMoveEvent(QMouseEvent *event)  { m_graphicsScene->getRenderer()->mouseMoveEvent(event);  }
+	virtual void mouseMoveEvent(QMouseEvent *event)  { std::cout << "mouse move" << std::endl; m_graphicsScene->getRenderer()->mouseMoveEvent(event);  }
 	virtual void keyPressEvent(QKeyEvent *event)     { m_graphicsScene->getRenderer()->keyPressEvent(event);   }
 	virtual void keyReleaseEvent(QKeyEvent *event)   { m_graphicsScene->getRenderer()->keyReleaseEvent(event); }
 	//virtual void wheelEvent(QWheelEvent *)           { m_graphicsScene->getRenderer()->wheelEvent(event);      }

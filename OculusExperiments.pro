@@ -45,6 +45,8 @@ OTHER_FILES += \
     shaders/mengerDistort.fs \
     shaders/repetition.fs \
     shaders/seascape.fs \
-    shaders/waterpipe.fs
+    shaders/waterpipe.fs \
+    shaders/cune.fs \
+    shaders/flyingCubes.fs
 
 
