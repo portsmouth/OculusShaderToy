@@ -411,13 +411,13 @@ void Renderer::mouseMoveEvent(QMouseEvent *event)
 		}
 	}
 
-	m_lastMousePos = event->pos();
-/*
+	//m_lastMousePos = event->pos();
+
 	QPoint glob = mapToGlobal(QPoint(width()/2,height()/2));
 		QCursor::setPos(glob);
 		m_lastMousePos = QPoint(width()/2,height()/2);
 		QGLWidget::mouseMoveEvent(event);
-*/
+
 }
 
 

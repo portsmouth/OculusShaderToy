@@ -34,6 +34,8 @@ TEMPLATE = app
 
 	LIBS += -framework cocoa -framework carbon -framework opengl
 
+	DEFINES += SHADER_DIR="/Users/jamports/projects/OculusExperiments/shaders"
+
 # install
 target.path = $$[QT_INSTALL_EXAMPLES]/opengl/oculus
 INSTALLS += target
@@ -47,6 +49,7 @@ OTHER_FILES += \
     shaders/seascape.fs \
     shaders/waterpipe.fs \
     shaders/cune.fs \
-    shaders/flyingCubes.fs
+    shaders/flyingCubes.fs \
+    shaders/test.fs
 
 

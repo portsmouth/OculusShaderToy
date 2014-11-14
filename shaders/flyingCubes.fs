@@ -23,7 +23,8 @@ uniform vec2 iResolution;
 
 #define FOV_MORPH 1
 
-float box(vec3 p) {
+float box(vec3 p)
+{
 	return length(max(abs(p)-vec3(.5),0.0)) - 0.15;
 }
 
@@ -36,7 +37,8 @@ vec3 rot(vec3 p, float f) {
 }
 
 
-vec3 trans(vec3 p, out float rotout) {
+vec3 trans(vec3 p, out float rotout)
+{
 	p.zx += iGlobalTime*8.0;
 
 	vec3 b = vec3(4.);
@@ -55,7 +57,8 @@ float scene(vec3 p) {
 }
 
 
-vec3 normal(vec3 p, float d) {
+vec3 normal(vec3 p, float d)
+{
 	vec3 e = vec3(0.04,.0,.0);
 	return normalize(vec3(
 		scene(p+e.xyy)-d,
@@ -80,8 +83,6 @@ void main(void)
 
 	vec3 rd = normalize( -znear*camBasisZ + P.x*camBasisX + P.y*camBasisY );
 	vec3 ro = camPos;
-
-
 	vec3 p = ro + rd;
 
 	float dall,d;
@@ -96,7 +97,11 @@ void main(void)
 
 	if(d < 0.06) {
 		vec3 n = normal(p,d);
-		vec3 col = vec3(dot(vec3(0.0,0.0,1.0), n));
+
+		float S = 100.0;
+		vec3 C = vec3(mod(p.x,S),mod(p.y,S),mod(p.z,S));
+
+		vec3 col = C * vec3(dot(vec3(0.0,0.0,1.0), n));
 		float objrot;
 		vec3 objp = trans(p,objrot);
 		vec3 objn = abs(rot(n,objrot));

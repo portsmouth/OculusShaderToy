@@ -17,7 +17,7 @@ const OVR::Vector3f	RightVector(1.0f, 0.0f, 0.0f);
 const OVR::Vector3f	UpVector(0.0f, 1.0f, 0.0f);
 const OVR::Vector3f	ForwardVector(0.0f, 0.0f, -1.0f); // -1 because HMD looks along -Z at identity orientation
 
-const float		YawInitial	= 0.0f;
+const float		YawInitial	= M_PI;
 const float		Sensitivity	= 0.2f; // low sensitivity to ease people into it gently.
 const float		MoveSpeed	= 1.0f; // m/s
 

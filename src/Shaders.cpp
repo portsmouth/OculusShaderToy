@@ -3,6 +3,10 @@
 
 #include <QDirIterator>
 
+
+#define _STRINGIFY(x) #x
+#define STRINGIFY(x) _STRINGIFY(x)
+
 /*
 * Returns a string containing the text in
 * a vertex/fragment shader source file.
@@ -145,7 +149,11 @@ void ShaderManager::hotLoad(unsigned int n)
 {
 	/* create program object and attach shaders */
 	g_program = glCreateProgram();
-	shaderAttachFromFile(g_program, GL_VERTEX_SHADER, "/Users/jamports/projects/OculusExperiments/shaders/shader.vs");
+
+	QString vertexShaderPath = QString(STRINGIFY(SHADER_DIR)) + QDir::separator() + QString("shader.vs");
+	std::cout << "vertexShaderPath: " <<  vertexShaderPath.toUtf8().constData() << std::endl;
+
+	shaderAttachFromFile(g_program, GL_VERTEX_SHADER, vertexShaderPath.toUtf8().constData());
 
 	std::string fragmentShaderPath = m_fragmentShaders[n];
 	shaderAttachFromFile(g_program, GL_FRAGMENT_SHADER, fragmentShaderPath.c_str());
@@ -180,7 +188,7 @@ void ShaderManager::hotLoad(unsigned int n)
 
 ShaderManager::ShaderManager() : m_currentShader(0)
 {
-	std::string shaderDir = "/Users/jamports/projects/OculusExperiments/shaders/";
+	std::string shaderDir(STRINGIFY(SHADER_DIR));
 	findFragmentShaders(shaderDir, m_fragmentShaders);
 	for (int n=0; n<m_fragmentShaders.size(); ++n)
 	{

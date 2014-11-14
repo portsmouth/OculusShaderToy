@@ -5,7 +5,7 @@
 Player::Player() :
 	UserEyeHeight(1.76f - 0.15f),        // 1.76 meters height (ave US male, Wikipedia), less 15 centimeters (TomF's top-of-head-to-eye distance).
 	//BodyPos(1.0f, 1.76f - 0.15f, 1.0f),
-	BodyPos(1.0f, 3.5f, 1.0f),
+	BodyPos(2.0f, 3.5f, 2.0f),
 	BodyYaw(YawInitial)
 {
 	MoveForward = MoveBack = MoveLeft = MoveRight = MoveUp = MoveDown = 0;
