@@ -50,6 +50,13 @@ OTHER_FILES += \
     shaders/waterpipe.fs \
     shaders/cune.fs \
     shaders/flyingCubes.fs \
-    shaders/test.fs
+    shaders/test.fs \
+    shaders/mengerRotate.fs \
+    shaders/aaSpheres.fs \
+    shaders/spikes.fs \
+    shaders/kifs.fs \
+    shaders/metahex.fs \
+    shaders/mengersDream.fs \
+    shaders/loveTunnel.fs
 
 

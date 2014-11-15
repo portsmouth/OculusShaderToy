@@ -21,16 +21,13 @@ uniform float iGlobalTime;
 uniform vec2 iResolution;
 
 
-#define MaxSteps 32
+#define MaxSteps 40
 #define MinimumDistance 0.00005
-#define normalDistance     0.0002
+#define normalDistance     0.001
 
 #define Iterations 7
-#define PI 3.141592
 #define Scale  3.0
 #define FieldOfView 3.0
-#define Jitter 0.005
-#define FudgeFactor 0.9
 #define NonLinearPerspective 1.0
 #define DebugNonlinearPerspective false
 
@@ -60,27 +57,15 @@ vec3 getLight(in vec3 color, in vec3 normal, in vec3 dir) {
 }
 
 
-// DE: Infinitely tiled Menger IFS.
-//
-// For more info on KIFS, see:
-// http://www.fractalforums.com/3d-fractal-generation/kaleidoscopic-%28escape-time-ifs%29/
 float DE(in vec3 z)
 {
-	// enable this to debug the non-linear perspective
-	if (DebugNonlinearPerspective) {
-		z = fract(z);
-		float d=length(z.xy-vec2(0.5));
-		d = min(d, length(z.xz-vec2(0.5)));
-		d = min(d, length(z.yz-vec2(0.5)));
-		return d-0.01;
-	}
-	// Folding 'tiling' of 3D space;
 	z  = abs(1.0-mod(z,2.0));
-	float time = 0.02*iGlobalTime;
-
+	float time = 0.3*iGlobalTime;
 	float d = 1.0;
-	for (int n = 0; n < Iterations; n++) {
-		z.xy = rotate(z.xy,4.0+2.0*cos( time/8.0));
+	for (int n = 0; n < Iterations; n++)
+	{
+		z.xy = rotate(z.xy,2.0*cos( time/8.0));
+		z.yz = rotate(z.yz,2.0*sin( time/200.0));
 		z = abs(z);
 		if (z.x<z.y){ z.xy = z.yx;}
 		if (z.x< z.z){ z.xz = z.zx;}
@@ -89,14 +74,12 @@ float DE(in vec3 z)
 		if( z.z<-0.5*Offset.z*(Scale-1.0))  z.z+=Offset.z*(Scale-1.0);
 		d = min(d, length(z) * pow(Scale, float(-n)-1.0));
 	}
-
-	return d-0.001;
+	return d-normalDistance;
 }
 
 // Finite difference normal
 vec3 getNormal(in vec3 pos) {
 	vec3 e = vec3(0.0,normalDistance,0.0);
-
 	return normalize(vec3(
 			DE(pos+e.yxx)-DE(pos-e.yxx),
 			DE(pos+e.xyx)-DE(pos-e.xyx),
@@ -105,45 +88,53 @@ vec3 getNormal(in vec3 pos) {
 		);
 }
 
-// Solid color
 vec3 getColor(vec3 normal, vec3 pos) {
-	return vec3(1.0);
+	return vec3(0.7, 0.8, 1.0);
+}
+
+vec3 hash3( float n )
+{
+	return fract(sin(vec3(n,n+1.0,n+2.0))*vec3(43758.5453123,22578.1459123,19642.3490423));
+}
+
+vec3 noise( in float x )
+{
+	float p = floor(x);
+	float f = fract(x);
+	f = f*f*(3.0-2.0*f);
+	return mix( hash3(p+0.0), hash3(p+1.0),f);
 }
 
 
-// Pseudo-random number
-// From: lumina.sourceforge.net/Tutorials/Noise.html
-float rand(vec2 co){
-	return fract(cos(dot(co,vec2(4.898,7.23))) * 23421.631);
+mat4 rotationMat( in vec3 xyz )
+{
+	vec3 si = sin(xyz);
+	vec3 co = cos(xyz);
+	return mat4( co.y*co.z,                co.y*si.z,               -si.y,       0.0,
+				 si.x*si.y*co.z-co.x*si.z, si.x*si.y*si.z+co.x*co.z, si.x*co.y,  0.0,
+				 co.x*si.y*co.z+si.x*si.z, co.x*si.y*si.z-si.x*co.z, co.x*co.y,  0.0,
+				 0.0,                      0.0,                      0.0,        1.0 );
 }
 
-vec4 rayMarch(in vec3 from, in vec3 dir) {
-	// Add some noise to prevent banding
-	float totalDistance = Jitter*rand(gl_FragCoord.xy+vec2(iGlobalTime));
-	vec3 dir2 = dir;
+
+vec4 rayMarch(in vec3 from, in vec3 dir)
+{
+	float totalDistance = 0.0;
 	float distance;
 	int steps = 0;
 	vec3 pos;
-	for (int i=0; i < MaxSteps; i++) {
-		// Non-linear perspective applied here.
-		//dir.zy = rotate(dir2.zy,totalDistance)*cos( iGlobalTime/4.0)*NonLinearPerspective;
-
+	for (int i=0; i<MaxSteps; i++)
+	{
 		pos = from + totalDistance * dir;
-		distance = DE(pos)*FudgeFactor;
+		distance = DE(pos);
 		totalDistance += distance;
 		if (distance < MinimumDistance) break;
 		steps = i;
 	}
-
-	// 'AO' is based on number of steps.
-	// Try to smooth the count, to combat banding.
+	if (distance>0.1) return exp(2.0*distance)*vec4(1.0, 0.5, 0.0, 1.0);
 	float smoothStep =   float(steps) + distance/MinimumDistance;
 	float ao = 1.1-smoothStep/float(MaxSteps);
-
-	// Since our distance field is not signed,
-	// backstep when calc'ing normal
 	vec3 normal = getNormal(pos-dir*normalDistance*3.0);
-
 	vec3 color = getColor(normal, pos);
 	vec3 light = getLight(color, normal, dir);
 	color = (color*Ambient+light)*ao;
@@ -164,37 +155,44 @@ void main(void)
 	vec2 ur = vec2(Wright, Hup);
 	vec2 P = ll + ndc*(ur-ll);
 
-	vec3 rayDir = normalize( -znear*camBasisZ + P.x*camBasisX + P.y*camBasisY );
+	vec3 rd = normalize( -znear*camBasisZ + P.x*camBasisX + P.y*camBasisY );
 
-	vec3 camPosProcedural = 0.05*iGlobalTime*vec3(0.0,0.0,-1.0);
 
-	gl_FragColor = rayMarch(camPosProcedural, rayDir);
+	vec2 q = ndc;
+	vec2 p = -1.0 + 2.0 * q;
+	p.x *= iResolution.x/iResolution.y;
+	vec2 m = vec2(0.5);
+
+	// animation
+	float time = iGlobalTime;
+	time += 15.0*smoothstep(  15.0, 25.0, iGlobalTime );
+	time += 20.0*smoothstep(  65.0, 80.0, iGlobalTime );
+	time += 35.0*smoothstep( 105.0, 135.0, iGlobalTime );
+	time += 20.0*smoothstep( 165.0, 180.0, iGlobalTime );
+	time += 40.0*smoothstep( 220.0, 290.0, iGlobalTime );
+	time +=  5.0*smoothstep( 320.0, 330.0, iGlobalTime );
+	float time1 = (time-10.0)*1.5 - 167.0;
+	float time2 = time;
+	const float s = 1.1;
+	mat4 mm;
+	mm = rotationMat( vec3(0.4,0.1,3.4) +
+					  0.15*sin(0.1*vec3(0.40,0.30,0.61)*time1) +
+					  0.15*sin(0.1*vec3(0.11,0.53,0.48)*time1));
+	mm[0].xyz *= s;
+	mm[1].xyz *= s;
+	mm[2].xyz *= s;
+	mm[3].xyz = vec3( 0.15, 0.05, -0.07 ) + 0.05*sin(vec3(0.0,1.0,2.0) + 0.2*vec3(0.31,0.24,0.42)*time1);
+
+	// camera
+	float an = 1.0 + 0.1*time2 - 6.2*m.x;
+	float cr = 0.15*sin(0.2*time2);
+	float cr2 = 0.6*smoothstep(10.0,20.0,time2);
+	vec3 dro = cr2 * vec3(sin(an),0.25,cos(an));
+	vec3 ro = 0.05*iGlobalTime*vec3(0.0,0.0,1.0) + 0.01*dro;
+
+
+
+	gl_FragColor = rayMarch(ro, rd);
 }
 
 
-
-
-/*
-void main()
-{
-	vec2 ndc = vec2((gl_FragCoord.x-viewportX)/viewportW,
-					(gl_FragCoord.y-viewportY)/viewportH);
-
-	float Hup    = znear * UpTan;
-	float Hdown  = znear * DownTan;
-	float Wleft  = znear * LeftTan;
-	float Wright = znear * RightTan;
-
-	vec2 ll = vec2(-Wleft, -Hdown);
-	vec2 ur = vec2(Wright, Hup);
-	vec2 P = ll + ndc*(ur-ll);
-
-	vec3 ray_direction = normalize( -znear*camBasisZ + P.x*camBasisX + P.y*camBasisY );
-	vec3 ray_origin = camPos;
-
-	vec3 col = render( ray_origin, ray_direction );
-
-	vec4 sample = vec4(col, 1.0);
-	gl_FragColor = sample;
-}
-*/

@@ -84,6 +84,8 @@ protected:
 	int m_W;
 	int m_H;
 
+	bool m_paused;
+
 
 	// ***** Oculus HMD Variables
 	ovrHmd              Hmd;

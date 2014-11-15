@@ -38,7 +38,8 @@ Renderer::Renderer(int W, int H, QGLFormat format, QMainWindow *parent) :
 	m_fullscreened(false),
 	HSWDisplayCurrentlyDisplayed(true),
 
-	m_shaderManager(NULL)
+	m_shaderManager(NULL),
+	m_paused(false)
 
 {
 	setMouseTracking(true);
@@ -206,11 +207,20 @@ void Renderer::render()
 	float centerPupilDepthMeters  = ovrHmd_GetFloat(Hmd, "CenterPupilDepth", 0.0f);
 
 	static double LastUpdate;
-	double curtime = ovr_GetTimeInSeconds() - tStart;
+	float  dt;
 
-	// If running slower than 10fps, clamp. Helps when debugging, because then dt can be minutes!
-	float  dt = OVR::Alg::Min<float>(float(curtime - LastUpdate), 0.1f);
-	LastUpdate = curtime;
+	double curtime;
+	if (m_paused)
+	{
+		curtime = LastUpdate;
+		dt = 0.0166f;
+	}
+	else
+	{
+		curtime = ovr_GetTimeInSeconds() - tStart;
+		dt = OVR::Alg::Min<float>(float(curtime - LastUpdate), 0.1f);
+		LastUpdate = curtime;
+	}
 
 	ovrFrameTiming HmdFrameTiming = ovrHmd_BeginFrame(Hmd, 0);
 
@@ -323,7 +333,16 @@ void Renderer::raytrace(int eyeIndex, double globalTime)
 	glViewport(renderViewport.x, renderViewport.y, renderViewport.w, renderViewport.h);
 
 	CameraBasis cameraBasis;
-	calculateCameraBasisFromPose(EyeRenderPose[eye], EyeRenderDesc[eye], cameraBasis);
+
+	if (eyeIndex==0)
+	{
+		calculateCameraBasisFromPose(EyeRenderPose[1], EyeRenderDesc[1], cameraBasis);
+	}
+	else
+	{
+		calculateCameraBasisFromPose(EyeRenderPose[0], EyeRenderDesc[0], cameraBasis);
+	}
+
 
 	GLuint shader = m_shaderManager->getProgram();
 	glUseProgram(shader);
@@ -456,6 +475,8 @@ void Renderer::keyPressEvent(QKeyEvent* event)
 		case Qt::Key_Down: m_player.HandleMoveKey(OVR::Key_Down, true); break;
 		case Qt::Key_Left: m_player.HandleMoveKey(OVR::Key_Left, true); break;
 		case Qt::Key_Right: m_player.HandleMoveKey(OVR::Key_Right, true); break;
+
+		case Qt::Key_P: m_paused = !m_paused; break;
 
 		default:
 			event->ignore();
