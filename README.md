@@ -16,6 +16,12 @@ Ships with the following ported shaders:
 ![alt tag](https://raw.githubusercontent.com/portsmouth/OculusShaderToy/master/images/repetition.png)
 ![alt tag](https://raw.githubusercontent.com/portsmouth/OculusShaderToy/master/images/minecraft.png)
 
+Some videos of it in action:
+  - [Love Tunnel](https://www.youtube.com/watch?v=p5O6fMofPjo)
+  - [Menger Distort](https://www.youtube.com/watch?v=p5O6fMofPjo)
+  - [Menger's Dream](https://www.youtube.com/watch?v=CIAn3LVNZO0)
+  - [Seascape](https://www.youtube.com/watch?v=0_Cj7mXfFUM)
+
 The original ShaderToy shaders these are based on can be found here:
   - [Seascape](https://www.shadertoy.com/view/Ms2SD1)
   - [Love Tunnel](https://www.shadertoy.com/view/XdBGDd)
