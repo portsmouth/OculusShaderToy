@@ -1,7 +1,7 @@
 OculusShaderToy
 ===============
 
-An experimental Qt-based port of [ShaderToy](https://www.shadertoy.com/) code running in OculusVR.
+An experimental Qt-based port of [ShaderToy](https://www.shadertoy.com/) code running in OculusVR (DK2, SDK v0.4).
 Currently this is Mac OS X only (tested only on Yosemite), though the code is almost pure Qt and porting to other platforms should be straightforward.
 
 Ships with the following ported shaders:
@@ -29,6 +29,8 @@ The original ShaderToy shaders these are based on can be found here:
 
 Installation
 ============
+
+You need Qt5 installed, and Oculus SDK v0.4. Obviously an Oculus DK2 devkit would be handy as well.
 
 In the [OculusShaderToy.pro](https://github.com/portsmouth/OculusShaderToy/blob/master/OculusShaderToy.pro) file, set the variable OCULUS_SDK2 to the directory of your local installation of the Oculus SDK 2. This should then build in QtCreator (on Mac OS X Yosemite).
 
