@@ -17,15 +17,15 @@ Ships with the following ported shaders:
 ![alt tag](https://raw.githubusercontent.com/portsmouth/OculusShaderToy/master/images/minecraft.png)
 
 The original ShaderToy shaders these are based on can be found here:
-[Seascape](https://www.shadertoy.com/view/Ms2SD1)
-[Love Tunnel](https://www.shadertoy.com/view/XdBGDd)
-[MetaHexaBalls](https://www.shadertoy.com/view/Mss3WN)
-[Menger Journey](https://www.shadertoy.com/view/Mdf3z7)
-[Menger's Dream](https://www.shadertoy.com/view/lsSSDV)
-[Spout](https://www.shadertoy.com/view/lsXGzH)
-[Mirror Room](https://www.shadertoy.com/view/4sS3zc)
-[Infinite Repetition](https://www.shadertoy.com/view/4dXGRN)
-[Minecraft](https://www.shadertoy.com/view/4ds3WS)
+  - [Seascape](https://www.shadertoy.com/view/Ms2SD1)
+  - [Love Tunnel](https://www.shadertoy.com/view/XdBGDd)
+  - [MetaHexaBalls](https://www.shadertoy.com/view/Mss3WN)
+  - [Menger Journey](https://www.shadertoy.com/view/Mdf3z7)
+  - [Menger's Dream](https://www.shadertoy.com/view/lsSSDV)
+  - [Spout](https://www.shadertoy.com/view/lsXGzH)
+  - [Mirror Room](https://www.shadertoy.com/view/4sS3zc)
+  - [Infinite Repetition](https://www.shadertoy.com/view/4dXGRN)
+  - [Minecraft](https://www.shadertoy.com/view/4ds3WS)
 
 Installation
 ============
