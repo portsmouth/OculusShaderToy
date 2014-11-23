@@ -95,6 +95,44 @@ void Player::HandleMovement(double dt, bool shiftDown)
 }
 
 
+OVR::Matrix4f Player::CalculateViewFromPose(const OVR::Posef& pose)
+{
+	OVR::Posef worldPose = VirtualWorldTransformfromRealPose(pose);
+
+	// Rotate and position View Camera
+	OVR::Vector3f up      = worldPose.Rotation.Rotate(UpVector);
+	OVR::Vector3f forward = worldPose.Rotation.Rotate(ForwardVector);
+
+	// Transform the position of the center eye in the real world (i.e. sitting in your chair)
+	// into the frame of the player's virtual body.
+	OVR::Vector3f viewPos = worldPose.Translation;
+	OVR::Matrix4f view = OVR::Matrix4f::LookAtRH(viewPos, viewPos + forward, up);
+
+	return view;
+}
+
+void Player::calculateCameraBasisFromPose(const OVR::Posef& pose, const ovrEyeRenderDesc& eyeDesc,
+											CameraBasis& cameraBasis)
+{
+	OVR::Posef worldPose = VirtualWorldTransformfromRealPose(pose);
+
+	OVR::Vector3f forward = worldPose.Rotation.Rotate(ForwardVector);
+	OVR::Vector3f viewPos = worldPose.Translation;
+	cameraBasis.pos = viewPos;
+
+	OVR::Vector3f up      = worldPose.Rotation.Rotate(UpVector);
+	OVR::Vector3f eye = viewPos;
+	OVR::Vector3f at = viewPos + forward;
+
+	cameraBasis.z = (eye - at).Normalized();  // Forward
+	cameraBasis.x = up.Cross(cameraBasis.z).Normalized(); // Right
+	cameraBasis.y = cameraBasis.z.Cross(cameraBasis.x);
+
+	cameraBasis.fov = eyeDesc.Fov;
+	cameraBasis.znear = .1f;
+	cameraBasis.zfar = 1000.0f;
+}
+
 // Handle directional movement. Returns 'true' if movement was processed.
 bool Player::HandleMoveKey(OVR::KeyCode key, bool down)
 {

@@ -34,19 +34,17 @@ public:
 	ShaderManager();
 
 	GLuint getProgram() { return g_program; }
-
 	void loadNextShader();
 
 private:
 
-	void hotLoad(unsigned int n);
-
 	GLuint g_program;
+	std::vector<std::string> m_fragmentShaders;
+	unsigned int m_currentShader;
 
+	void hotLoad(unsigned int n);
 	static GLuint shaderCompileFromFile(GLenum type, const char *filePath);
 	static void shaderAttachFromFile(GLuint program, GLenum type, const char *filePath);
 
-	std::vector<std::string> m_fragmentShaders;
-	unsigned int m_currentShader;
 };
 

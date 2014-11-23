@@ -1,20 +1,11 @@
 
 #include "Mac.h"
+#include <QMainWindow>
 #import <Cocoa/Cocoa.h>
-#include <Carbon/Carbon.h>
-
-#include <QBackingStore>
-
-#include <QRect>
-#include <QApplication>
-#include <QDesktopWidget>
 
 void Mac::fullscreen(QWidget* window)
 {
+	// Unclear why this is necessary, but without it,
+	// fullscreen mode on Mac doesn't work.
 	NSView *nsview = (NSView *) window->winId();
-	NSWindow *nswindow = [nsview window];
-
-	//window->showFullScreen();
-	//[nswindow toggleFullScreen:nil];
-	//window->setWindowFlags(Qt::FramelessWindowHint);
 }

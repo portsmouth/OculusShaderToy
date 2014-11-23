@@ -1,12 +1,10 @@
 
 #pragma once
 
-#include <QMainWindow>
-
 class Mac
 {
 public:
-	static void fullscreen(QWidget* mainWindow);
+	static void fullscreen(class QWidget* mainWindow);
 };
 
 

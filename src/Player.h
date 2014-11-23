@@ -42,6 +42,17 @@ public:
 	OVR::Vector3f            GetPosition();
 	OVR::Quatf               GetOrientation(bool baseOnly = false);
 
+	OVR::Matrix4f CalculateViewFromPose(const OVR::Posef& pose);
+
+	struct CameraBasis
+	{
+		OVR::Vector3f pos;
+		OVR::Vector3f x, y, z; // direction basis (-z=view, LH)
+		ovrFovPort fov;
+		float znear, zfar;
+	};
+	void calculateCameraBasisFromPose(const OVR::Posef& pose, const ovrEyeRenderDesc& eyeDesc, CameraBasis& cameraBasis);
+
 	// Returns virtual world position based on a real world head pose.
 	// Allows predicting eyes separately based on scanout time.
 	OVR::Posef          VirtualWorldTransformfromRealPose(const OVR::Posef &sensorHeadPose);

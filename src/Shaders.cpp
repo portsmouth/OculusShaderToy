@@ -133,8 +133,6 @@ void findFragmentShaders(std::string baseDir, std::vector<std::string>& pathsOut
 	}
 }
 
-
-
 void ShaderManager::loadNextShader()
 {
 	m_currentShader++;
@@ -184,13 +182,11 @@ void ShaderManager::hotLoad(unsigned int n)
 	std::cout << "Successfully linked shader program." << std::endl;
 }
 
-
-
 ShaderManager::ShaderManager() : m_currentShader(0)
 {
 	std::string shaderDir(STRINGIFY(SHADER_DIR));
 	findFragmentShaders(shaderDir, m_fragmentShaders);
-	for (int n=0; n<m_fragmentShaders.size(); ++n)
+	for (size_t n=0; n<m_fragmentShaders.size(); ++n)
 	{
 		std::cout << "Found shader: " << m_fragmentShaders[n] << std::endl;
 	}
