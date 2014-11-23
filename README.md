@@ -37,6 +37,7 @@ Controls
   - Press **Space** to move to next demo.
   - Press **P** key to pause the animation. (Note that in some demos, the camera position can only be changed in paused mode).
   - Move in world space via **AWSD** keys, and cursor keys.
+  - Press **G** to show a GL-rendered grid overlaid on top of the raymarching render.
 
 Installation
 ============
