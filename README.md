@@ -27,6 +27,17 @@ The original ShaderToy shaders these are based on can be found here:
   - [Infinite Repetition](https://www.shadertoy.com/view/4dXGRN)
   - [Minecraft](https://www.shadertoy.com/view/4ds3WS)
 
+Controls
+========
+
+(Note that on startup, a mouse click may be needed for the application to enter fullscreen correctly. This is a bug).
+
+  - Look around as usual via head motion in Oculus VR.
+  - Change body rotation (yaw) via left-right mouse movement. 
+  - Press **Space** to move to next demo.
+  - Press **P** key to pause the animation. (Note that in some demos, the camera position can only be changed in paused mode).
+  - Move in world space via **AWSD** keys, and cursor keys.
+
 Installation
 ============
 
