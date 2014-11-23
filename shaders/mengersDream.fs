@@ -18,6 +18,7 @@ uniform float znear;
 uniform float zfar;
 
 uniform float iGlobalTime;
+uniform int iPaused;
 uniform vec2 iResolution;
 
 
@@ -188,9 +189,16 @@ void main(void)
 	float cr = 0.15*sin(0.2*time2);
 	float cr2 = 0.6*smoothstep(10.0,20.0,time2);
 	vec3 dro = cr2 * vec3(sin(an),0.25,cos(an));
-	vec3 ro = 0.05*iGlobalTime*vec3(0.0,0.0,1.0) + 0.01*dro;
 
-
+	vec3 ro;
+	if (iPaused==0)
+	{
+		ro = 0.05*iGlobalTime*vec3(0.0,0.0,1.0) + 0.01*dro;
+	}
+	else
+	{
+		ro = camPos;
+	}
 
 	gl_FragColor = rayMarch(ro, rd);
 }

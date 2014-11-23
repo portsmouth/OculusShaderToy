@@ -2,6 +2,8 @@
 #include "Player.h"
 #include <Kernel/OVR_Alg.h>
 
+#include <algorithm>
+
 Player::Player() :
 	UserEyeHeight(1.76f - 0.15f),        // 1.76 meters height (ave US male, Wikipedia), less 15 centimeters (TomF's top-of-head-to-eye distance).
 	//BodyPos(1.0f, 1.76f - 0.15f, 1.0f),
@@ -11,6 +13,10 @@ Player::Player() :
 	MoveForward = MoveBack = MoveLeft = MoveRight = MoveUp = MoveDown = 0;
 	GamepadMove = OVR::Vector3f(0);
 	GamepadRotate = OVR::Vector3f(0);
+
+	m_velocity = OVR::Vector3f(0);
+
+	bMotionRelativeToBody = false;
 }
 
 Player::~Player()
@@ -41,55 +47,51 @@ void Player::HandleMovement(double dt, bool shiftDown)
 	// Handle keyboard movement.
 	// This translates BasePos based on the orientation and keys pressed.
 	// Note that Pitch and Roll do not affect movement (they only affect view).
-	OVR::Vector3f controllerMove;
+	OVR::Vector3f moveDir;
 	if (MoveForward || MoveBack || MoveLeft || MoveRight || MoveUp || MoveDown)
 	{
 		if (MoveForward)
 		{
-			controllerMove += ForwardVector;
+			moveDir += ForwardVector;
 		}
 		else if (MoveBack)
 		{
-			controllerMove -= ForwardVector;
+			moveDir -= ForwardVector;
 		}
 		if (MoveRight)
 		{
-			controllerMove += RightVector;
+			moveDir += RightVector;
 		}
 		else if (MoveLeft)
 		{
-			controllerMove -= RightVector;
+			moveDir -= RightVector;
 		}
 		if (MoveUp)
 		{
-			controllerMove += UpVector;
+			moveDir += UpVector;
 		}
 		else if (MoveDown)
 		{
-			controllerMove -= UpVector;
+			moveDir -= UpVector;
 		}
 	}
 	else if (GamepadMove.LengthSq() > 0)
 	{
-		controllerMove = GamepadMove;
-	}
-	controllerMove = GetOrientation(bMotionRelativeToBody).Rotate(controllerMove);
-	//controllerMove.y = 0; // Project to the horizontal plane
-	if (controllerMove.LengthSq() > 0)
-	{
-		// Normalize vector so we don't move faster diagonally.
-		controllerMove.Normalize();
-		controllerMove *= OVR::Alg::Min<float>(MoveSpeed * (float)dt * (shiftDown ? 3.0f : 1.0f), 1.0f);
+		moveDir = GamepadMove;
 	}
 
-	// Compute total move direction vector and move length
-	OVR::Vector3f orientationVector = controllerMove;
-	float moveLength = orientationVector.Length();
-	if (moveLength > 0)
-		orientationVector.Normalize();
+	moveDir = GetOrientation(bMotionRelativeToBody).Rotate(moveDir);
+	moveDir.Normalize();
 
-	orientationVector *= moveLength;
-	BodyPos += orientationVector;
+	OVR::Vector3f dPos = m_velocity * dt;
+
+	OVR::Vector3f newVelocity = m_velocity + moveDir*(MoveAccel*float(dt));
+	if (newVelocity.Length()<MaxMoveSpeed) m_velocity=newVelocity;
+
+	float fracSpeed = std::min(m_velocity.Length()/MaxMoveSpeed, 1.f);
+	m_velocity *= std::min(0.99, exp(-Damping*(1.0f-fracSpeed)));
+
+	BodyPos += dPos;
 }
 
 

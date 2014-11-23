@@ -90,6 +90,8 @@ void attributedIntersection( inout vec2 c, float d, float a)
 
 vec2 map( vec3 p )
 {
+	float M = abs(1.0 + 0.5*sin(iGlobalTime/200.0));
+
   vec2 ret = vec2(min(
 						// repeatedSphere(p, vec3(2.0), 0.25),
 						// repeatedBox(p, vec3(0.811), 0.071, 0.031)  ),
@@ -101,12 +103,12 @@ vec2 map( vec3 p )
 				), 1.0);
 
   attributedUnion(ret, repeatedCone(vec3(p.x, p.y, p.z - camtime),
-									vec3(1.611, 1.9, 5.0),
+									M*vec3(1.611, 1.9, 5.0),
 									normalize(vec2(1.0, 0.3))),
 					   2.0);
 
-  attributedUnion(ret, max( repeatedSphere(p+0.25, vec3(2.0), 0.25),
-							repeatedSphere(p, vec3(0.1), 0.046)
+  attributedUnion(ret, max( repeatedSphere(p+0.25, M*vec3(2.0), M*0.25),
+							repeatedSphere(p, vec3(0.1)/M, M*0.046)
 						  ), 3.0);
 
   attributedIntersection(ret, -sdSphere(p - camo, 0.03), -1.0);

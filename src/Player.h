@@ -18,9 +18,10 @@ const OVR::Vector3f	UpVector(0.0f, 1.0f, 0.0f);
 const OVR::Vector3f	ForwardVector(0.0f, 0.0f, -1.0f); // -1 because HMD looks along -Z at identity orientation
 
 const float		YawInitial	= M_PI/2.0;
-const float		Sensitivity	= 0.2f; // low sensitivity to ease people into it gently.
-const float		MoveSpeed	= 5.0f; // m/s
-
+const float		Sensitivity	= 0.6f; // low sensitivity to ease people into it gently.
+const float		MaxMoveSpeed	= 40.0f; // m/s
+const float		MoveAccel	    = 6.0f; // m/s/s
+const float		Damping = 0.1f;
 
 // Player class describes position and movement state of the player in the 3D world.
 class Player
@@ -57,6 +58,8 @@ public:
 	uint8_t             MoveDown;
 	OVR::Vector3f       GamepadMove, GamepadRotate;
 	bool                bMotionRelativeToBody;
+
+	OVR::Vector3f m_velocity;
 
 	Player();
 	~Player();

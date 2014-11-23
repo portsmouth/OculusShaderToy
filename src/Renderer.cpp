@@ -39,7 +39,8 @@ Renderer::Renderer(int W, int H, QGLFormat format, QMainWindow *parent) :
 	HSWDisplayCurrentlyDisplayed(true),
 
 	m_shaderManager(NULL),
-	m_paused(false)
+	m_paused(false),
+	m_drawGL(false)
 
 {
 	setMouseTracking(true);
@@ -77,7 +78,6 @@ Renderer::Renderer(int W, int H, QGLFormat format, QMainWindow *parent) :
 	resize(m_W, m_H);
 	//this->showFullScreen();
 
-	m_lastMousePos = QPoint(width()/2,height()/2);
 
 	// Hmd caps.
 	bool VsyncEnabled = true;
@@ -111,6 +111,8 @@ Renderer::Renderer(int W, int H, QGLFormat format, QMainWindow *parent) :
 	Mac::fullscreen(this);
 
 	tStart = ovr_GetTimeInSeconds();
+
+	m_lastMousePos = QPoint(width()/2,height()/2);
 }
 
 Renderer::~Renderer()
@@ -213,7 +215,7 @@ void Renderer::render()
 	if (m_paused)
 	{
 		curtime = LastUpdate;
-		dt = 0.0166f;
+		dt = 0.0666f;
 	}
 	else
 	{
@@ -293,7 +295,10 @@ void Renderer::render()
 	for (int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++)
 	{
 		raytrace(eyeIndex, curtime);
-		//drawScene(eyeIndex, curtime);
+		if (m_drawGL)
+		{
+			drawGL(eyeIndex, curtime);
+		}
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -308,7 +313,7 @@ void Renderer::render()
 }
 
 
-void Renderer::drawScene(int eyeIndex, double globalTime)
+void Renderer::drawGL(int eyeIndex, double globalTime)
 {
 	ovrEyeType eye = Hmd->EyeRenderOrder[eyeIndex];
 
@@ -348,6 +353,7 @@ void Renderer::raytrace(int eyeIndex, double globalTime)
 	glUseProgram(shader);
 
 	glUniform1f(glGetUniformLocation(shader, "iGlobalTime"), (float)globalTime);
+	glUniform1i(glGetUniformLocation(shader, "iPaused"), (int)m_paused);
 
 	float UpTan    = cameraBasis.fov.UpTan;
 	float DownTan  = cameraBasis.fov.DownTan;
@@ -402,7 +408,7 @@ void Renderer::raytrace(int eyeIndex, double globalTime)
 
 void Renderer::mousePressEvent(QMouseEvent *event)
 {
-	m_lastMousePos = event->pos();
+	//m_lastMousePos = event->pos();
 }
 
 void Renderer::wheelEvent(QWheelEvent *event)
@@ -415,28 +421,14 @@ void Renderer::wheelEvent(QWheelEvent *event)
 
 void Renderer::mouseMoveEvent(QMouseEvent *event)
 {
-	std::cout << "Renderer::mouseMoveEvent" << std::endl;
-	int dx = event->x() - m_lastMousePos.x();
-	int dy = event->y() - m_lastMousePos.y();
+	//std::cout << "Renderer::mouseMoveEvent" << std::endl;
+	//std::cout << "event->x(): " << event->x() << std::endl;
+	float dx = float(event->x() - m_lastMousePos.x())/width();
+	m_player.BodyYaw -= Sensitivity * M_PI * (dx);
 
-	// Alt+left mouse button = Rotate
-	// Alt+middle mouse button = Pan
-	//Qt::KeyboardModifiers key_modifiers = qApp->keyboardModifiers();
-	//if (key_modifiers.testFlag(Qt::AltModifier))
-	{
-		//if (event->buttons().testFlag(Qt::LeftButton))
-		{
-			m_player.BodyYaw -= (Sensitivity * dx) / 360.0f;
-		}
-	}
-
-	//m_lastMousePos = event->pos();
-
-	QPoint glob = mapToGlobal(QPoint(width()/2,height()/2));
-		QCursor::setPos(glob);
-		m_lastMousePos = QPoint(width()/2,height()/2);
-		QGLWidget::mouseMoveEvent(event);
-
+	QPoint center = mapToGlobal(QPoint(width()/2,height()/2));
+	QCursor::setPos(center);
+	m_lastMousePos = QPoint(width()/2,height()/2);
 }
 
 
@@ -454,18 +446,20 @@ void Renderer::keyPressEvent(QKeyEvent* event)
 			break;
 
 		case Qt::Key_F9:
+		/*
 			if (!m_fullscreened)
 			{
-				//m_parentWindow->showFullScreen();
+				m_parentWindow->showFullScreen();
 				QGLWidget::showFullScreen();
 			}
 			else
 			{
-				//m_parentWindow->showNormal();
+				m_parentWindow->showNormal();
 				QGLWidget::showNormal();
 			}
 			m_fullscreened = !m_fullscreened;
 			break;
+			*/
 
 		case Qt::Key_W: m_player.HandleMoveKey(OVR::Key_W, true); break;
 		case Qt::Key_S: m_player.HandleMoveKey(OVR::Key_S, true); break;
@@ -477,6 +471,7 @@ void Renderer::keyPressEvent(QKeyEvent* event)
 		case Qt::Key_Right: m_player.HandleMoveKey(OVR::Key_Right, true); break;
 
 		case Qt::Key_P: m_paused = !m_paused; break;
+		case Qt::Key_G: m_drawGL = !m_drawGL; break;
 
 		default:
 			event->ignore();
@@ -512,10 +507,10 @@ void Renderer::initializeGL()
 	glEnable(GL_COLOR_MATERIAL);
 	glDisable(GL_BLEND);
 	glEnable(GL_POLYGON_SMOOTH);
-	//glEnable(GL_MULTISAMPLE);
+	glEnable(GL_MULTISAMPLE);
 	//glShadeModel(GL_SMOOTH);
 
-	//glEnable(GL_MULTISAMPLE_ARB);
+	glEnable(GL_MULTISAMPLE_ARB);
 
 	GLenum gl_err = glGetError();
 

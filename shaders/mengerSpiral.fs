@@ -18,6 +18,7 @@ uniform float znear;
 uniform float zfar;
 
 uniform float iGlobalTime;
+uniform int iPaused;
 uniform vec2 iResolution;
 
 
@@ -143,7 +144,15 @@ vec4 rayMarch(in vec3 from, in vec3 dir) {
 void main(void)
 {
 	// Camera position (eye), and camera target
-	vec3 camPosProcedural = 0.005*iGlobalTime*vec3(1.0,0.0,0.0);
+	vec3 cam;
+	if (iPaused==0)
+	{
+		cam = 0.005*iGlobalTime*vec3(1.0,0.0,0.0);
+	}
+	else
+	{
+		cam = camPos;
+	}
 
 	vec2 ndc = vec2((gl_FragCoord.x-viewportX)/viewportW,
 					(gl_FragCoord.y-viewportY)/viewportH);
@@ -159,7 +168,7 @@ void main(void)
 
 	vec3 rayDir = normalize( -znear*camBasisZ + P.x*camBasisX + P.y*camBasisY );
 
-	gl_FragColor = rayMarch(camPosProcedural, rayDir);
+	gl_FragColor = rayMarch(cam, rayDir);
 }
 
 

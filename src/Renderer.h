@@ -85,6 +85,7 @@ protected:
 	int m_H;
 
 	bool m_paused;
+	bool m_drawGL;
 
 
 	// ***** Oculus HMD Variables
@@ -133,7 +134,7 @@ protected:
 									  const ovrEyeRenderDesc& eyeDesc,
 									  CameraBasis& cameraBasis);
 
-	void drawScene(int eyeIndex, double globalTime);
+	void drawGL(int eyeIndex, double globalTime);
 	void raytrace(int eyeIndex, double globalTime);
 
 };

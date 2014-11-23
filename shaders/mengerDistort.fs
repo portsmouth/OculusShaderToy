@@ -20,7 +20,6 @@ uniform float zfar;
 uniform float iGlobalTime;
 uniform vec2 iResolution;
 
-
 #define MaxSteps 50
 #define MinimumDistance 0.00005
 #define normalDistance     MinimumDistance

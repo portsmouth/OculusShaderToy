@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 	format.setDoubleBuffer(true);
 	format.setDepth(true);
 	format.setAlpha(false);
-	format.setSampleBuffers(false);
+	format.setSampleBuffers(true);
 	format.setSamples(16);
 
 	Renderer* renderer = new Renderer(1920, 1080, format, NULL);

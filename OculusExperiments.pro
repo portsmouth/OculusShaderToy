@@ -57,6 +57,19 @@ OTHER_FILES += \
     shaders/kifs.fs \
     shaders/metahex.fs \
     shaders/mengersDream.fs \
-    shaders/loveTunnel.fs
+    shaders/loveTunnel.fs \
+    shaders/mengerSpiral.fs \
+    shaders/voxelTyre.fs \
+    shaders/voxel.fs \
+    shaders/mirror.fs \
+    shaders/tmp/loveTunnel.fs \
+    shaders/tmp/mengerDistort.fs \
+    shaders/tmp/mengersDream.fs \
+    shaders/tmp/mengerSpiral.fs \
+    shaders/tmp/metahex.fs \
+    shaders/tmp/repetition.fs \
+    shaders/tmp/seascape.fs \
+    shaders/tmp/voxel.fs \
+    shaders/tmp/waterpipe.fs
 
 

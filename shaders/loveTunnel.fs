@@ -23,6 +23,7 @@ uniform float znear;
 uniform float zfar;
 
 uniform float iGlobalTime;
+uniform int iPaused;
 uniform vec2 iResolution;
 
 #define DELTA				0.01
@@ -168,7 +169,16 @@ void main () {
 	vec2 P = ll + ndc*(ur-ll);
 
 	vec3 direction = normalize( -znear*camBasisZ + P.x*camBasisX + P.y*camBasisY );
-	vec3 origin = vec3 (0.0, 0.0, iGlobalTime * 6.0);//camPos;
+
+	vec3 origin;
+	if (iPaused==0)
+	{
+		origin = vec3 (0.0, 0.0, iGlobalTime * 6.0);
+	}
+	else
+	{
+		origin = camPos;
+	}
 
 	// Ray marching
 	vec3 p = origin;
