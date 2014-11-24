@@ -49,7 +49,7 @@ Controls
 Installation
 ============
 
-You need [Qt5](http://qt-project.org/downloads) installed, and Oculus SDK v0.4. Obviously an Oculus DK2 devkit would be handy as well.
+You need [Qt5](http://qt-project.org/downloads) installed, and Oculus [SDK](https://developer.oculus.com/downloads/) v0.4. Obviously an Oculus DK2 devkit would be handy as well.
 
 In the [OculusShaderToy.pro](https://github.com/portsmouth/OculusShaderToy/blob/master/OculusShaderToy.pro) file, set the variable OCULUS_SDK2 to the directory of your local installation of the Oculus SDK 2. This should then build in QtCreator (on Mac OS X Yosemite).
 
