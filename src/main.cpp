@@ -42,6 +42,12 @@ public:
 	virtual void keyReleaseEvent(QKeyEvent *event)   { m_graphicsScene->getRenderer()->keyReleaseEvent(event); }
 	//virtual void wheelEvent(QWheelEvent *)           { m_graphicsScene->getRenderer()->wheelEvent(event);      }
 
+protected slots:
+	virtual void setupViewport(QWidget *viewport)
+	{
+		m_graphicsScene->getRenderer()->updateGL();
+	}
+
 private:
 	GraphicsScene* m_graphicsScene;
 };
