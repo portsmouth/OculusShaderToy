@@ -19,8 +19,8 @@ const OVR::Vector3f	ForwardVector(0.0f, 0.0f, -1.0f); // -1 because HMD looks al
 
 const float		YawInitial	= M_PI/2.0;
 const float		Sensitivity	= 0.6f; // low sensitivity to ease people into it gently.
-const float		MaxMoveSpeed	= 40.0f; // m/s
-const float		MoveAccel	    = 6.0f; // m/s/s
+const float		MaxMoveSpeed	= 30.0f; // m/s
+const float		MoveAccel	    = 5.0f; // m/s/s
 const float		Damping = 0.1f;
 
 // Player class describes position and movement state of the player in the 3D world.

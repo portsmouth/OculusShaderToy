@@ -20,6 +20,7 @@ public:
 
 	virtual void drawBackground(QPainter *painter, const QRectF &rect)
 	{
+		m_renderer->initializeGL();
 		m_renderer->render();
 	}
 

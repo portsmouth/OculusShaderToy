@@ -186,6 +186,15 @@ void Renderer::render()
 	ovrTrackingState hmdState;
 	ovrVector3f hmdToEyeViewOffset[2] = { EyeRenderDesc[0].HmdToEyeViewOffset,
 										  EyeRenderDesc[1].HmdToEyeViewOffset };
+
+	const float SCALE_FACTOR = 1.f;
+	for (int e=0; e<2; e++)
+	{
+		hmdToEyeViewOffset[e].x *= SCALE_FACTOR;
+		hmdToEyeViewOffset[e].y *= SCALE_FACTOR;
+		hmdToEyeViewOffset[e].z *= SCALE_FACTOR;
+	}
+
 	ovrHmd_GetEyePoses(Hmd, 0, hmdToEyeViewOffset, EyeRenderPose, &hmdState);
 	for (int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++)
 	{
@@ -398,136 +407,142 @@ void Renderer::keyReleaseEvent(QKeyEvent *event)
 
 void Renderer::initializeGL()
 {
-	std::cout << "initializeGL.." << std::endl;
-
-	glDisable(GL_DEPTH_TEST);
-	glEnable(GL_COLOR_MATERIAL);
-	glDisable(GL_BLEND);
-	glEnable(GL_POLYGON_SMOOTH);
-	glEnable(GL_MULTISAMPLE);
-	glShadeModel(GL_SMOOTH);
-	glEnable(GL_MULTISAMPLE_ARB);
-
-	m_shaderManager = new ShaderManager();
-
-	// Configure Oculus rendering
+	static bool done = false;
+	if (!done)
 	{
-		ovrRenderAPIConfig config;
-		config.Header.API = ovrRenderAPI_OpenGL;
-		config.Header.RTSize = OVR::Sizei(Hmd->Resolution.w, Hmd->Resolution.h);
-		config.Header.Multisample = 1;
+		std::cout << "initializeGL.." << std::endl;
 
-		std::cerr << "ovrHmd_ConfigureRendering" << std::endl;
-		std::cerr << "width()" << Hmd->Resolution.w << std::endl;
-		std::cerr << "height()" << Hmd->Resolution.h << std::endl;
+		glDisable(GL_DEPTH_TEST);
+		glEnable(GL_COLOR_MATERIAL);
+		glDisable(GL_BLEND);
+		glEnable(GL_POLYGON_SMOOTH);
+		glEnable(GL_MULTISAMPLE);
+		glShadeModel(GL_SMOOTH);
+		glEnable(GL_MULTISAMPLE_ARB);
 
-		unsigned distortionCaps = ovrDistortionCap_Chromatic | ovrDistortionCap_Vignette;
-		bool SupportsSrgb = true;
-		bool PixelLuminanceOverdrive = true;
-		bool TimewarpEnabled = true;
-		bool TimewarpNoJitEnabled = false;
-		if (SupportsSrgb)           distortionCaps |= ovrDistortionCap_SRGB;
-		if(PixelLuminanceOverdrive) distortionCaps |= ovrDistortionCap_Overdrive;
-		if (TimewarpEnabled)        distortionCaps |= ovrDistortionCap_TimeWarp;
-		if(TimewarpNoJitEnabled)    distortionCaps |= ovrDistortionCap_ProfileNoTimewarpSpinWaits;
+		m_shaderManager = new ShaderManager();
 
-		if (!ovrHmd_ConfigureRendering(Hmd, &config, distortionCaps, Hmd->DefaultEyeFov, EyeRenderDesc))
+		// Configure Oculus rendering
 		{
+			ovrRenderAPIConfig config;
+			config.Header.API = ovrRenderAPI_OpenGL;
+			config.Header.RTSize = OVR::Sizei(Hmd->Resolution.w, Hmd->Resolution.h);
+			config.Header.Multisample = 1;
+
 			std::cerr << "ovrHmd_ConfigureRendering" << std::endl;
+			std::cerr << "width()" << Hmd->Resolution.w << std::endl;
+			std::cerr << "height()" << Hmd->Resolution.h << std::endl;
+
+			unsigned distortionCaps = ovrDistortionCap_Chromatic | ovrDistortionCap_Vignette;
+			bool SupportsSrgb = true;
+			bool PixelLuminanceOverdrive = true;
+			bool TimewarpEnabled = true;
+			bool TimewarpNoJitEnabled = false;
+			if (SupportsSrgb)           distortionCaps |= ovrDistortionCap_SRGB;
+			if(PixelLuminanceOverdrive) distortionCaps |= ovrDistortionCap_Overdrive;
+			if (TimewarpEnabled)        distortionCaps |= ovrDistortionCap_TimeWarp;
+			if(TimewarpNoJitEnabled)    distortionCaps |= ovrDistortionCap_ProfileNoTimewarpSpinWaits;
+
+			if (!ovrHmd_ConfigureRendering(Hmd, &config, distortionCaps, Hmd->DefaultEyeFov, EyeRenderDesc))
+			{
+				std::cerr << "ovrHmd_ConfigureRendering" << std::endl;
+				exit(1);
+			}
+
+			unsigned sensorCaps = ovrTrackingCap_Orientation | ovrTrackingCap_MagYawCorrection;
+			bool PositionTrackingEnabled = false;
+			if (PositionTrackingEnabled)
+				sensorCaps |= ovrTrackingCap_Position;
+			if (StartTrackingCaps != sensorCaps)
+			{
+				ovrHmd_ConfigureTracking(Hmd, sensorCaps, 0);
+				StartTrackingCaps = sensorCaps;
+			}
+
+			Projection[0] = ovrMatrix4f_Projection(EyeRenderDesc[0].Fov, .1f, 1000.0f, true);
+			Projection[1] = ovrMatrix4f_Projection(EyeRenderDesc[1].Fov, .1f, 1000.0f, true);
+		}
+
+		// Initialize eye rendering information for ovrHmd_Configure.
+		// The viewport sizes are re-computed in case RenderTargetSize changed due to HW limitations.
+		ovrFovPort eyeFov[2];
+		eyeFov[0] = Hmd->DefaultEyeFov[0];
+		eyeFov[1] = Hmd->DefaultEyeFov[1];
+
+		OVR::Sizei recommendedTexSize[] = {
+			  ovrHmd_GetFovTextureSize(Hmd, ovrEye_Left, eyeFov[0], 1),
+			  ovrHmd_GetFovTextureSize(Hmd, ovrEye_Right, eyeFov[1], 1)
+		  };
+
+		std::cout << "recommendedTexSize[0]: " << recommendedTexSize[0].w << ", " << recommendedTexSize[0].h << std::endl;
+		std::cout << "recommendedTexSize[1]: " << recommendedTexSize[1].w << ", " << recommendedTexSize[1].h << std::endl;
+
+		OVR::Sizei  rtSize(recommendedTexSize[0].w + recommendedTexSize[1].w,
+							OVR::Alg::Max(recommendedTexSize[0].h, recommendedTexSize[1].h));
+
+		EyeRenderSize[0] = OVR::Sizei::Min(OVR::Sizei(rtSize.w/2, rtSize.h), recommendedTexSize[0]);
+		EyeRenderSize[1] = OVR::Sizei::Min(OVR::Sizei(rtSize.w/2, rtSize.h), recommendedTexSize[1]);
+
+		// Store texture pointers that will be passed for rendering.
+		// Same texture is used, but with different viewports.
+
+		{
+			glGenTextures(1, &m_colorTexId);
+			glBindTexture(GL_TEXTURE_2D, m_colorTexId);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rtSize.w, rtSize.h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+		}
+		{
+			glGenTextures(1, &m_depthTexId);
+			glBindTexture(GL_TEXTURE_2D, m_depthTexId);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, rtSize.w, rtSize.h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+		}
+
+		glGenFramebuffers(1, &m_fbo);
+		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_colorTexId, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depthTexId, 0);
+
+		GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		if (status != GL_FRAMEBUFFER_COMPLETE)
+		{
+			std::cout << "initializeGL: FBO incomplete..." << std::endl;
+		}
+
+		// Set up the two ovrGLTexture structs for ovrHmd_EndFrame to operate on:
+		eyeGLTextures[0].OGL.Header.RenderViewport = OVR::Recti(OVR::Vector2i(0), EyeRenderSize[0]);
+		eyeGLTextures[1].OGL.Header.RenderViewport = OVR::Recti(OVR::Vector2i((rtSize.w+1)/2, 0), EyeRenderSize[1]);
+		for (int i=0; i<2; ++i)
+		{
+			eyeGLTextures[i].OGL.Header.API = ovrRenderAPI_OpenGL;
+			eyeGLTextures[i].OGL.Header.TextureSize = rtSize;
+			eyeGLTextures[i].OGL.TexId = m_colorTexId;
+		}
+
+		QTimer *t = new QTimer(this);
+		connect(t, &QTimer::timeout, this, &QGLWidget::updateGL);
+		t->start();
+
+		GLenum gl_err = glGetError();
+		if (gl_err != GL_NO_ERROR)
+		{
+			printf("GL error: %d/n", gl_err);
 			exit(1);
 		}
 
-		unsigned sensorCaps = ovrTrackingCap_Orientation | ovrTrackingCap_MagYawCorrection;
-		bool PositionTrackingEnabled = false;
-		if (PositionTrackingEnabled)
-			sensorCaps |= ovrTrackingCap_Position;
-		if (StartTrackingCaps != sensorCaps)
-		{
-			ovrHmd_ConfigureTracking(Hmd, sensorCaps, 0);
-			StartTrackingCaps = sensorCaps;
-		}
+		std::cout << "Renderer::initializeGL done" << std::endl;
 
-		Projection[0] = ovrMatrix4f_Projection(EyeRenderDesc[0].Fov, .1f, 1000.0f, true);
-		Projection[1] = ovrMatrix4f_Projection(EyeRenderDesc[1].Fov, .1f, 1000.0f, true);
+		done = true;
 	}
-
-	// Initialize eye rendering information for ovrHmd_Configure.
-	// The viewport sizes are re-computed in case RenderTargetSize changed due to HW limitations.
-	ovrFovPort eyeFov[2];
-	eyeFov[0] = Hmd->DefaultEyeFov[0];
-	eyeFov[1] = Hmd->DefaultEyeFov[1];
-
-	OVR::Sizei recommendedTexSize[] = {
-		  ovrHmd_GetFovTextureSize(Hmd, ovrEye_Left, eyeFov[0], 1),
-		  ovrHmd_GetFovTextureSize(Hmd, ovrEye_Right, eyeFov[1], 1)
-	  };
-
-	std::cout << "recommendedTexSize[0]: " << recommendedTexSize[0].w << ", " << recommendedTexSize[0].h << std::endl;
-	std::cout << "recommendedTexSize[1]: " << recommendedTexSize[1].w << ", " << recommendedTexSize[1].h << std::endl;
-
-	OVR::Sizei  rtSize(recommendedTexSize[0].w + recommendedTexSize[1].w,
-						OVR::Alg::Max(recommendedTexSize[0].h, recommendedTexSize[1].h));
-
-	EyeRenderSize[0] = OVR::Sizei::Min(OVR::Sizei(rtSize.w/2, rtSize.h), recommendedTexSize[0]);
-	EyeRenderSize[1] = OVR::Sizei::Min(OVR::Sizei(rtSize.w/2, rtSize.h), recommendedTexSize[1]);
-
-	// Store texture pointers that will be passed for rendering.
-	// Same texture is used, but with different viewports.
-
-	{
-		glGenTextures(1, &m_colorTexId);
-		glBindTexture(GL_TEXTURE_2D, m_colorTexId);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rtSize.w, rtSize.h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-	}
-	{
-		glGenTextures(1, &m_depthTexId);
-		glBindTexture(GL_TEXTURE_2D, m_depthTexId);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, rtSize.w, rtSize.h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-	}
-
-	glGenFramebuffers(1, &m_fbo);
-	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_colorTexId, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depthTexId, 0);
-
-	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-	if (status != GL_FRAMEBUFFER_COMPLETE)
-	{
-		std::cout << "initializeGL: FBO incomplete..." << std::endl;
-	}
-
-	// Set up the two ovrGLTexture structs for ovrHmd_EndFrame to operate on:
-	eyeGLTextures[0].OGL.Header.RenderViewport = OVR::Recti(OVR::Vector2i(0), EyeRenderSize[0]);
-	eyeGLTextures[1].OGL.Header.RenderViewport = OVR::Recti(OVR::Vector2i((rtSize.w+1)/2, 0), EyeRenderSize[1]);
-	for (int i=0; i<2; ++i)
-	{
-		eyeGLTextures[i].OGL.Header.API = ovrRenderAPI_OpenGL;
-		eyeGLTextures[i].OGL.Header.TextureSize = rtSize;
-		eyeGLTextures[i].OGL.TexId = m_colorTexId;
-	}
-
-	QTimer *t = new QTimer(this);
-	connect(t, &QTimer::timeout, this, &QGLWidget::updateGL);
-	t->start();
-
-	GLenum gl_err = glGetError();
-	if (gl_err != GL_NO_ERROR)
-	{
-		printf("GL error: %d/n", gl_err);
-		exit(1);
-	}
-
-	std::cout << "Renderer::initializeGL done" << std::endl;
 }
 
 void Renderer::resizeGL(int width, int height)

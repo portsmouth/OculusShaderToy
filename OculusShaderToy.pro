@@ -45,4 +45,5 @@ OTHER_FILES += \
 		shaders/metahex.fs \
 		shaders/loveTunnel.fs \
 		shaders/minecraft.fs \
-		shaders/mirror.fs
+		shaders/mirror.fs \
+    shaders/mandelBox.fs
