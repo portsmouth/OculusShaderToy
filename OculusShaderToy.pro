@@ -7,7 +7,7 @@ TEMPLATE = app
 # Set this to your local installation of the Oculus SDK 2
 OCULUS_SDK2 = /Developer/OculusSDK2
 
-QT += opengl
+QT += opengl openglextensions
 
 SOURCES += src/main.cpp \
 			src/Renderer.cpp \

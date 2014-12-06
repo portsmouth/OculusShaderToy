@@ -6,6 +6,7 @@
 #include <QtGui/QMouseEvent>
 #include <QGLFramebufferObject>
 #include <QTimer>
+#include <QtOpenGLExtensions/QOpenGLExtensions>
 
 ///////////////////////////////////////////////////
 // Platform-specific defines go here
