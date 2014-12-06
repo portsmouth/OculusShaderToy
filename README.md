@@ -18,6 +18,7 @@ Ships with the following ported shaders:
 
 Some videos of it in action:
   - [Seascape](https://www.youtube.com/watch?v=0_Cj7mXfFUM)
+  - [Mandelbox](https://www.youtube.com/watch?v=0fOqSdoo83w)
   - [Love Tunnel](https://www.youtube.com/watch?v=iDcRH0RtTnE)
   - [Menger's Dream](https://www.youtube.com/watch?v=CIAn3LVNZO0)
   - [Menger Distort](https://www.youtube.com/watch?v=p5O6fMofPjo)
