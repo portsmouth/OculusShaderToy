@@ -21,6 +21,8 @@
 #endif
 ///////////////////////////////////////////////////
 
+#include <QtOpenGLExtensions/QOpenGLExtensions>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
